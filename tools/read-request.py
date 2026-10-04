@@ -28,9 +28,16 @@ import sys
 
 WORKFLOW = os.path.join(os.path.dirname(__file__), '..', '.github', 'workflows', 'build.yml')
 
-# project_ref is the one free-text input. It becomes `git clone --branch <ref>`, so it is held to
-# what a git ref can contain and nothing else - no spaces, no quotes, no shell metacharacters.
+# project_ref is a free-text input. It becomes `git clone --branch <ref>`, so it is held to what a
+# git ref can contain and nothing else - no spaces, no quotes, no shell metacharacters.
 REF = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._/-]{0,98}$')
+
+# build_id is the other one, and it is optional. The page puts a nonce in it so that, after the
+# reader has submitted the issue, the page can find the run this request produced instead of
+# guessing at the newest one. It ends up in the workflow's run-name, which is a label and not a
+# shell word - but it is still a string a stranger can choose, so it is held to the narrowest
+# thing that can do the job.
+BUILD_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9-]{0,39}$')
 
 FENCE = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.S)
 BARE = re.compile(r'(\{.*\})', re.S)
@@ -120,7 +127,19 @@ def main():
             return refuse('%s=%r is not one of: %s' % (key, value, ', '.join(allowed[key])))
         out.append((key, value))
 
-    extra = sorted(set(req) - set(wanted))
+    # Optional, and absent is not an error: a request written by hand, or by an older copy of the
+    # page, has no build_id and builds exactly as it did before. Present and malformed IS an error,
+    # because the only thing that puts one there is the page, and a page that got it wrong should
+    # hear so rather than have it quietly dropped.
+    build_id = req.get('build_id', '')
+    if not isinstance(build_id, str):
+        return refuse('build_id is not a string.')
+    build_id = build_id.strip()
+    if build_id and not BUILD_ID.match(build_id):
+        return refuse('build_id is not one this page would have written: %r' % build_id)
+    out.append(('build_id', build_id))
+
+    extra = sorted(set(req) - set(wanted) - {'build_id'})
     if extra:
         return refuse('Unexpected field(s): %s' % ', '.join(extra))
 

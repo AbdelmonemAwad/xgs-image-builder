@@ -31,18 +31,23 @@ page is live once Pages is turned on for that repository - step 2 below.
    Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
    worth a look before you fork - is at <https://abdelmonemawad.github.io/xgs-image-builder/>.
 
-   The page offers two ways to start a build, and they are not the same bargain:
+   Press **Build it** and GitHub opens in a new tab with the request filled in. Press **Submit new
+   issue** there, and come back: this page waits for the build, counts the time, and hands you the
+   download when it is ready.
 
-   - **Build it here.** The page dispatches the workflow through GitHub's REST API, watches the
-     run, and hands you the download when it finishes. The API has no door that does not want a
-     token, so this one asks for yours: a
-     [fine-grained token](https://github.com/settings/personal-access-tokens/new) for that one
-     repository with **Actions: Read and write**. It is sent to `api.github.com` and nowhere else,
-     never put in a URL, and held only in the tab unless you tick the box to keep it in that
-     browser. No credential lives in the page itself.
-   - **File a request instead.** The page sends you to the repository's new-issue form with your
-     choices already in the body, and a workflow picks the issue up. This one needs no token at
-     all: GitHub's own form does the authenticating. Nothing runs until you press Submit.
+   **That one press is not a detour, it is the authentication.** A page cannot file an issue for
+   you - creating one through the API needs a token, submitting GitHub's own form for you is
+   blocked cross-origin, and GitHub refuses to be put in a frame. So the press stays, and it is
+   what makes this route need no token at all. Everything after it is automatic: the request
+   carries an id, the workflow puts it in the run's name, and the page watches for that run.
+
+   Reading the run afterwards is done with no credential, which **a public repository allows and a
+   private one does not** - and GitHub allows sixty such reads an hour per address, so the page
+   slows its polling as the wait goes on and says so plainly if the allowance runs out. For a
+   private fork, or to skip the press, open **Use a token instead** on the page: a
+   [fine-grained token](https://github.com/settings/personal-access-tokens/new) for that one
+   repository with **Actions: Read and write**, sent to `api.github.com` and nowhere else, never
+   put in a URL, held in the tab unless you tick the box. No credential lives in the page itself.
 
    The page is static either way: it loads nothing from anywhere, and every style, icon and line of
    script is in the one file.

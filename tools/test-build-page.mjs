@@ -43,10 +43,12 @@ const check = (name, cond, got) => { console.log((cond ? 'ok   ' : 'FAIL ') + na
 
 async function page(mock) {
   const c = await b.newContext({ viewport: { width: 1280, height: 1100 } });
+  await c.route('https://github.com/**', r => r.fulfill({ status: 200,
+    contentType: 'text/html', body: '<title>new issue</title>' }));
   const p = await c.newPage();
   p.on('pageerror', e => { console.log('PAGEERROR: ' + e.message); fails.push('pageerror'); });
   const seen = [];
-  await p.route('https://api.github.com/**', async route => {
+  await c.route('https://api.github.com/**', async route => {
     const req = route.request();
     seen.push({ method: req.method(), url: req.url(), auth: req.headers()['authorization'],
                 body: req.postData() });
@@ -57,11 +59,16 @@ async function page(mock) {
   await p.goto(URL, { waitUntil: 'load' });
   return { p, c, seen };
 }
+/* The token lives behind a disclosure now - the open route is the one offered first - so every
+   token case has to open it the way a reader would. */
+const openToken = async p => { await p.click('#token_block > summary'); };
+
 const live = p => p.evaluate(() => ({
   state: document.getElementById('live').getAttribute('data-state'),
   head: document.getElementById('live_state').textContent,
   detail: document.getElementById('live_detail').textContent,
   err: document.getElementById('live_err').textContent,
+  clock: document.getElementById('live_clock').textContent,
   dl: document.getElementById('live_dl').className.includes('hidden') ? null : document.getElementById('live_dl').href,
   log: document.getElementById('live_log').className.includes('hidden') ? null : document.getElementById('live_log').href,
   cardShown: !document.getElementById('live_card').className.includes('hidden'),
@@ -83,8 +90,9 @@ const live = p => p.evaluate(() => ({
     return { status: 404, body: { message: 'unexpected ' + u } };
   });
   // the page generates its own id; capture it from the dispatch body
+  await openToken(p);
   await p.fill('#token', 'github_pat_test');
-  check('build button enabled once a token is typed', !(await p.isDisabled('#build')), 'still disabled');
+  check('the token button is never dead', !(await p.isDisabled('#build')), 'disabled');
   await p.click('#build');
   await p.waitForTimeout(900);
   const disp = seen.find(s => s.method === 'POST');
@@ -111,6 +119,19 @@ const live = p => p.evaluate(() => ({
   await c.close();
 }
 
+// --------------------------------------------- 1b. the token button with no token in the field
+{
+  const { p, c, seen } = await page(() => ({ status: 200, body: {} }));
+  await p.click('#build');
+  await p.waitForTimeout(250);
+  check('pressing it with no token opens the field',
+        await p.evaluate(() => document.getElementById('token_block').open), 'stayed shut');
+  check('and focuses it',
+        await p.evaluate(() => document.activeElement.id) === 'token', await p.evaluate(() => document.activeElement.id));
+  check('and dispatches nothing', seen.length === 0, seen.length + ' calls');
+  await c.close();
+}
+
 // ---------------------------------------------------------------- 2. failure paths
 for (const [name, status, body, wantIn] of [
   ['401 says the token was rejected', 401, { message: 'Bad credentials' }, 'rejected the token'],
@@ -121,6 +142,7 @@ for (const [name, status, body, wantIn] of [
   ['500 is reported with its code', 500, { message: 'oops' }, 'answered 500'],
 ]) {
   const { p, c } = await page(() => ({ status, body }));
+  await openToken(p);
   await p.fill('#token', 'tok');
   await p.click('#build');
   await p.waitForTimeout(500);
@@ -137,6 +159,7 @@ for (const [name, status, body, wantIn] of [
     if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs: [{ id: 5, name: 'x', display_title: 'x' }] } };
     return { status: 200, body: { status: 'completed', conclusion: 'failure' } };
   });
+  await openToken(p);
   await p.fill('#token', 'tok');
   await p.click('#build');
   await p.waitForTimeout(1500);
@@ -146,16 +169,67 @@ for (const [name, status, body, wantIn] of [
   await c.close();
 }
 
-// ---------------------------------------------------------------- 4. the issue route still works
+// ---------------------------------------------------------------- 3b. the open route
+{
+  let appeared = false, finished = false, bid = null;
+  const { p, c, seen } = await page((req) => {
+    const u = req.url();
+    if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs:
+      appeared ? [{ id: 11, name: 'x ' + bid, display_title: 'x ' + bid }] : [] } };
+    if (/\/actions\/runs\/11$/.test(u)) return { status: 200,
+      body: finished ? { status: 'completed', conclusion: 'success' } : { status: 'in_progress' } };
+    if (u.includes('/artifacts')) return { status: 200, body: { artifacts: [
+      { id: 42, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
+    return { status: 404, body: { message: 'unexpected ' + u } };
+  });
+  const [popup] = await Promise.all([ c.waitForEvent('page'), p.click('#go') ]);
+  await popup.waitForLoadState('domcontentloaded').catch(() => {});
+  const opened = decodeURIComponent(popup.url());
+  check('the open route really opens a tab', !!popup, 'no tab');
+  check('the tab is the new-issue form', opened.includes('/issues/new?labels=build'), opened);
+  bid = (opened.match(/"build_id": "([^"]+)"/) || [])[1];
+  check('the issue body carries a build_id', /^web-[a-z0-9]+-[a-z0-9]{6}$/.test(bid || ''), bid);
+  await p.waitForTimeout(300);
+  let v = await live(p);
+  check('it waits for the human press', v.state === 'working' && v.head === 'Waiting for you', JSON.stringify(v));
+  check('it names the button to press', v.detail.includes('Submit new issue'), v.detail);
+  check('a counter is running', /^\d+seconds$|^\d+:\d\delapsed$/.test(v.clock), v.clock);
+  await p.waitForTimeout(2200);
+  const later = (await live(p)).clock;
+  check('the counter ticks between polls', later !== v.clock, v.clock + ' -> ' + later);
+  check('the polls carry no Authorization', !seen.some(s => s.auth), 'a token was sent');
+  appeared = true;
+  await p.waitForFunction(() => document.getElementById('live_state').textContent === 'Building', null, { timeout: 60000 });
+  finished = true;
+  await p.waitForFunction(() => document.getElementById('live').dataset.state === 'done', null, { timeout: 90000 });
+  v = await live(p);
+  check('the counter stops when it is done', v.clock === '', JSON.stringify(v.clock));
+  check('the open route ends with the download', v.state === 'done' && v.dl ===
+    'https://github.com/someone/my-fork/actions/runs/11/artifacts/42', JSON.stringify(v));
+  await c.close();
+}
+
+// ---------------------------------------------------------------- 3c. the anonymous allowance
+{
+  const { p, c } = await page(() => ({ status: 403, body: { message: 'API rate limit exceeded' } }));
+  await Promise.all([ c.waitForEvent('page'), p.click('#go') ]);
+  await p.waitForTimeout(600);
+  const v = await live(p);
+  check('a spent anonymous allowance is not called a failure', v.state === 'working', JSON.stringify(v));
+  check('it says the build is unaffected', v.detail.includes('build is unaffected'), v.detail);
+  check('it offers the run on GitHub', !!v.log, 'no link');
+  await c.close();
+}
+
+// ---------------------------------------------------------------- 4. the token route still works
 {
   const { p, c } = await page(() => ({ status: 200, body: {} }));
-  await p.route('https://github.com/**', r => r.fulfill({ status: 200, body: 'ok' }));
-  let dest = null;
-  p.on('framenavigated', f => { if (f === p.mainFrame() && f.url().includes('github.com')) dest = f.url(); });
-  await p.click('#go');
-  await p.waitForTimeout(600);
-  check('the no-token issue route is untouched', dest && decodeURIComponent(dest).includes('/issues/new?labels=build'), dest);
-  check('the issue body carries no build_id', dest && !decodeURIComponent(dest).includes('build_id'), 'build_id leaked into the issue');
+  await p.click('#copy');
+  await p.waitForTimeout(300);
+  const said = await p.textContent('#copied');
+  check('the copy button still reports', said.includes('Copied') || said.includes('Could not copy'), said);
+  const shown = await p.textContent('#json');
+  check('the copied request carries no build_id', !shown.includes('build_id'), shown);
   await c.close();
 }
 
@@ -164,11 +238,13 @@ for (const [name, status, body, wantIn] of [
   const c = await b.newContext({ viewport: { width: 1280, height: 1000 } });
   const p = await c.newPage();
   await p.goto(URL, { waitUntil: 'load' });
+  await openToken(p);
   await p.fill('#token', 'secret-one');
   check('a token is not stored unless asked', await p.evaluate(() => localStorage.getItem('xgs.token')) === null, 'stored anyway');
   await p.check('#keep');
   check('ticking the box stores it', await p.evaluate(() => localStorage.getItem('xgs.token')) === 'secret-one', 'not stored');
   await p.reload({ waitUntil: 'load' });
+  await openToken(p);
   check('it comes back on reload', await p.inputValue('#token') === 'secret-one', await p.inputValue('#token'));
   await p.uncheck('#keep');
   check('unticking forgets it', await p.evaluate(() => localStorage.getItem('xgs.token')) === null, 'still stored');

@@ -67,6 +67,20 @@ ok 'ref: empty'                0 '{"opnsense_version":"26.7","image_type":"seria
 ok 'output injection via key'   0 "{${GOOD},\"x\\nok=true\\nz\":\"1\"}"
 ok 'output injection via value' 0 '{"opnsense_version":"26.7\nok=true","image_type":"serial","console_speed":"38400","serial_console":"yes","project_ref":"main"}'
 
+# build_id is optional, and it reaches the workflow's run-name. A request without one builds as it
+# always did; one with a malformed one is refused rather than quietly dropped, because the only
+# thing that writes a build_id is the page.
+ok 'build_id: absent'          1 "{${GOOD}}"
+ok 'build_id: empty string'    1 "{${GOOD},\"build_id\":\"\"}"
+ok 'build_id: the page shape'  1 "{${GOOD},\"build_id\":\"web-m1x9qk-4f20ab\"}"
+ok 'build_id: expression'      0 "{${GOOD},\"build_id\":\"\${{ secrets.GITHUB_TOKEN }}\"}"
+ok 'build_id: space'           0 "{${GOOD},\"build_id\":\"a b\"}"
+ok 'build_id: quote'           0 "{${GOOD},\"build_id\":\"a\\\"b\"}"
+ok 'build_id: leading dash'    0 "{${GOOD},\"build_id\":\"-x\"}"
+ok 'build_id: too long'        0 "{${GOOD},\"build_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+ok 'build_id: not a string'    0 "{${GOOD},\"build_id\":7}"
+ok 'build_id: newline'         0 "{${GOOD},\"build_id\":\"a\nok=true\"}"
+
 # And nothing a refusal prints may become a second output line.
 lines=$(ISSUE_BODY="{${GOOD},\"x\\nok=true\\nz\":\"1\"}" python3 "${SCRIPT}" | wc -l | tr -d ' ')
 if [ "${lines}" = 2 ]; then

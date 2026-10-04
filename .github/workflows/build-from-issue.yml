@@ -2,10 +2,16 @@ name: Build from a request
 
 # Read a build request filed from docs/index.html and start the build.
 #
-# HOW THE PIECES FIT. The page is static: it holds no credentials and calls nothing. All it does is
-# send the reader to this repository's new-issue form with a JSON block already in the body. They
-# press Submit. This workflow reads that JSON and dispatches build.yml. GitHub's own issue form is
-# what does the authenticating, which is why no token ever has to live in a web page.
+# HOW THE PIECES FIT. The page is static and holds no credential. All it does is send the reader to
+# this repository's new-issue form with a JSON block already in the body. They press Submit. This
+# workflow reads that JSON and dispatches build.yml. GitHub's own issue form is what does the
+# authenticating, which is why this route needs no token at all.
+#
+# THE PRESS CANNOT BE AUTOMATED, and that is the point of it rather than a shortcoming: the press is
+# the authentication. What can be automated is everything after it, and the page does that - it
+# writes a build_id into the request, this passes it to the dispatch, build.yml puts it in the run's
+# name, and the page then watches for the run carrying its own id and hands over the artifact. The
+# reader presses Submit once and never has to find their way back.
 #
 # WHY IT ONLY RUNS FOR THE OWNER. CONTRIBUTING.md's licence position is that anyone else forks this
 # and builds in their own account - their build, their artifact, their storage. An issue-triggered
@@ -55,7 +61,8 @@ jobs:
             -f image_type="${{ steps.req.outputs.image_type }}" \
             -f console_speed="${{ steps.req.outputs.console_speed }}" \
             -f serial_console="${{ steps.req.outputs.serial_console }}" \
-            -f project_ref="${{ steps.req.outputs.project_ref }}"
+            -f project_ref="${{ steps.req.outputs.project_ref }}" \
+            -f build_id="${{ steps.req.outputs.build_id }}"
 
       - name: Say what happened
         if: always()

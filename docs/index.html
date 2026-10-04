@@ -14,14 +14,19 @@
 
   It offers two ways to start a build, and they are not the same bargain:
 
-    - The issue route reads the controls and hands the result to this repository's "new issue"
-      form, with the title and body already filled in. You press Submit there, and a workflow picks
-      the issue up. No token: GitHub's own form does the authenticating.
+    - The open route, which is the one offered. It hands the request to this repository's "new
+      issue" form in a tab of its own, with everything filled in, and the reader presses Submit.
+      That press cannot be automated and should not be: it IS the authentication, and it is the
+      whole reason this route needs no token. Everything after it is automated - the request
+      carries a build_id, the workflow puts it in the run's name, and this page watches for the run
+      holding its own id and hands over the artifact. Reads are made with no Authorization header,
+      which GitHub answers on a public repository at sixty an hour per address, so the gap between
+      polls widens as the wait goes on and a spent allowance is reported rather than hidden.
 
-    - The direct route dispatches the workflow through the REST API and then watches it, which
-      needs a token - there is no door into the API without one. The token is the reader's, it is
-      typed in by them, it is sent to api.github.com and nowhere else, and it is held in the tab
-      unless they ask for it to be kept. Nothing in this file has a credential in it.
+    - The token route, behind a disclosure, for a private fork where an anonymous read gets
+      nothing. It dispatches through the REST API, which has no door that does not want a token.
+      The token is the reader's, typed in by them, sent to api.github.com and nowhere else, and
+      held in the tab unless they ask for it to be kept. Nothing in this file has a credential.
 
   The repository is worked out from this page's own URL, so a fork that publishes Pages gets a page
   that files issues on the fork and builds in the fork's account. See CONTRIBUTING.md - that shape
@@ -307,6 +312,13 @@
   }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   .live .detail { font-size: .86rem; color: var(--ink-2); }
+  .live .clock {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.35rem; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+    color: var(--ink); line-height: 1.1;
+  }
+  .live .clock:empty { display: none; }
+  .live .clock .unit { font-size: .8rem; color: var(--ink-3); margin-left: .15rem; }
   .live .detail .mono { color: var(--ink); }
   .live .err {
     font-size: .86rem; color: var(--stop); background: var(--stop-bg);
@@ -552,30 +564,31 @@
               <pre><code id="json"></code></pre>
             </details>
 
-          <div class="token" id="token_block">
-            <label for="token">GitHub token</label>
+          <details class="token" id="token_block">
+            <summary>Use a token instead of the issue</summary>
+            <label for="token" style="margin-top:.7rem">GitHub token</label>
             <input type="password" id="token" autocomplete="off" spellcheck="false"
                    placeholder="github_pat_..." aria-describedby="token_hint">
             <label class="keep"><input type="checkbox" id="keep"> Remember it in this browser</label>
-            <p class="note quiet" id="token_hint" style="margin-top:.6rem">A
+            <p class="note quiet" id="token_hint" style="margin-top:.6rem">Only worth it for a
+            <strong>private</strong> fork, where the open route cannot read the run. A
             <a href="https://github.com/settings/personal-access-tokens/new" target="_blank"
                rel="noopener">fine-grained token</a> for this repository alone, with
-            <strong>Actions: Read and write</strong>. It is sent only to <code>api.github.com</code>
-            and kept in this tab unless you tick the box. Without one, use the issue route below -
-            that needs no token at all.</p>
-          </div>
+            <strong>Actions: Read and write</strong>, sent to <code>api.github.com</code> and
+            nowhere else, kept in this tab unless you tick the box.</p>
+          </details>
           </div>
         </section>
 
         <div class="stack" id="actions">
-          <button type="button" class="btn btn-go" id="build" disabled>
-            Build it now
+          <button type="submit" class="btn btn-primary" id="go">
+            Build it
             <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06l2.97-2.97H2.75a.75.75 0 0 1 0-1.5h8.44L8.22 4.03a.75.75 0 0 1 0-1.06"/>
             </svg>
           </button>
-          <button type="submit" class="btn btn-ghost" id="go">Open a request as an issue</button>
-          <button type="button" class="btn btn-ghost" id="copy">Copy the request instead</button>
+          <button type="button" class="btn btn-ghost" id="build">Build with a token instead</button>
+          <button type="button" class="btn btn-ghost" id="copy">Copy the request</button>
         </div>
 
         <section class="card hidden" id="live_card">
@@ -584,6 +597,7 @@
             <div class="live" id="live" data-state="working" role="status" aria-live="polite">
               <span class="state"><span class="dot"></span><span id="live_state">Starting</span></span>
               <span class="detail" id="live_detail"></span>
+              <span class="clock" id="live_clock"></span>
               <span class="err hidden" id="live_err"></span>
               <a class="btn btn-go hidden" id="live_dl" target="_blank" rel="noopener">Download the image</a>
               <a class="btn btn-ghost hidden" id="live_log" target="_blank" rel="noopener">Open the run on GitHub</a>
@@ -595,10 +609,10 @@
         <p class="target" id="target"></p>
         <span id="copied" role="status" aria-live="polite"></span>
 
-        <p class="fine" id="fine">The green button dispatches the workflow from this page and then
-        watches it, and hands you the download when it finishes. The issue route needs no token:
-        it fills in GitHub's new-issue form and nothing is built until you press
-        <kbd>Submit new issue</kbd> there.</p>
+        <p class="fine" id="fine">GitHub opens in a new tab with the request filled in. Press
+        <kbd>Submit new issue</kbd> there - that press is what authenticates you, and it is the
+        only reason this needs no token. Then come back to this tab: it waits for the build and
+        hands you the download.</p>
       </aside>
 
     </div>
@@ -608,11 +622,11 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <p>This page loads nothing from anywhere and carries no credential of its own. The issue
-      route never asks you for one, because GitHub's own form does the authenticating. The direct
-      route has to ask: dispatching a workflow goes through the REST API and the API has no other
-      door. That token is yours, it is sent to <code>api.github.com</code> and nowhere else, and it
-      stays in this tab unless you ask the page to keep it.</p>
+      <p>This page loads nothing from anywhere and carries no credential of its own. It never
+      asks you for one either: pressing <kbd>Submit new issue</kbd> on GitHub is what authenticates
+      you, and the page simply waits for what that produces. A token is offered only for a private
+      fork, where reading the run anonymously gets nothing - and that token is yours, sent to
+      <code>api.github.com</code> and nowhere else.</p>
       <p>The finished image is a workflow <strong>artifact</strong> that expires after seven days,
       not a release. Builds run in the account that owns the repository.</p>
     </div>
@@ -720,39 +734,88 @@
   });
   refresh();
 
-  function compose() {
+  function nonce() {
+    return "web-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  }
+
+  function compose(buildId) {
     var v = values();
     if (!v.project_ref) { el.project_ref.focus(); return null; }
+    if (buildId) { v.build_id = buildId; }
     return {
       title: "build " + v.opnsense_version + " " + v.image_type + " at " + v.console_speed,
       body: requestBody(v)
     };
   }
 
+  /* The open route. The press on GitHub's form cannot be automated and should not be - it IS the
+     authentication, and it is the whole reason this route needs no token. What can be automated is
+     everything after it, so the form opens in a tab of its own and this one stays alive, watching
+     for the run the request will produce. */
   id("f").addEventListener("submit", function (ev) {
     ev.preventDefault();
-    var req = compose();
+    var buildId = nonce();
+    var req = compose(buildId);
     if (!req) { return; }
-    location.href = base + "/issues/new"
+    var url = base + "/issues/new"
       + "?labels=" + encodeURIComponent("build")
       + "&title=" + encodeURIComponent(req.title)
       + "&body=" + encodeURIComponent(req.body);
+
+    var startedAt = Date.now();
+    stopWatching();
+    liveLog.textContent = LOG_LABEL;
+    liveLog.href = base + "/actions/workflows/build.yml";
+    say("working", "Waiting for you",
+        "Press " + String.fromCharCode(8220) + "Submit new issue" + String.fromCharCode(8221)
+        + " in the GitHub tab. Nothing is built until you do.", "", startedAt);
+
+    /* Not window.open(url, "_blank", "noopener"): with noopener in the feature string the call
+       returns null by specification, so "did the tab open" and "was it blocked" would look
+       identical and the fallback below would fire every time. Open it, then cut the link back. */
+    var tab = window.open(url, "_blank");
+    if (tab) { try { tab.opener = null; } catch (e) { /* already severed */ } }
+    if (!tab) {
+      /* A blocked pop-up would otherwise leave this page waiting for something that never opened. */
+      say("working", "Open the request",
+          "This browser blocked the new tab. Open the request yourself and press Submit - this "
+          + "page will pick the build up from there.", "", startedAt);
+      liveLog.href = url;
+      liveLog.textContent = "Open the request on GitHub";
+      show(liveLog, true);
+    }
+    findRun(tokenEl.value.trim() || null, buildId, startedAt, "submit");
   });
 
   /* ==================================================================
      Building from the page
 
-     The issue route above needs no credential because GitHub's own form does the authenticating.
-     Dispatching a workflow has no such door: the REST API is the only way in, and it wants a
-     token. So the token is the reader's, scoped by them to this one repository, held in this tab
-     (or in this browser if they ask), and sent to api.github.com and nowhere else. It is never put
-     in a URL, never logged, and never written into the page.
+     Two routes end up here. The open one needs no credential at all - GitHub's own issue form
+     does the authenticating, and the reads that follow are anonymous, which a public repository
+     allows. The token one exists for a private fork, where an anonymous read returns nothing, and
+     for dispatching directly. That token is the reader's, scoped by them to this one repository,
+     held in this tab unless they ask otherwise, and sent to api.github.com and nowhere else. It is
+     never put in a URL, never logged, and never written into the page.
      ================================================================== */
 
   var API = "https://api.github.com";
   var LS_TOKEN = "xgs.token";
   var LS_RUN = "xgs.run";
   var watching = null;      /* timer id, so a second build cannot leave two pollers running */
+  var budget = null;        /* what GitHub last said is left of this IP's or token's hourly quota */
+
+  /* Anonymously GitHub allows sixty requests an hour per address, and a build takes the better
+     part of one. So the gap between polls widens as the wait goes on: quick while the reader is
+     still at the issue form and something should happen in seconds, slow once it is grinding
+     through a FreeBSD guest. With a token the allowance is five thousand and none of this
+     matters, so the token route keeps a flat fifteen seconds. */
+  function gap(token, elapsedMs) {
+    if (token) { return 15000; }
+    if (budget !== null && budget <= 3) { return 240000; }
+    if (elapsedMs < 120000) { return 20000; }
+    if (elapsedMs < 600000) { return 60000; }
+    return 120000;
+  }
 
   function store(key, value) {
     /* Private windows, blocked site data and a full quota all throw. None of them is worth
@@ -771,6 +834,9 @@
       "Accept": "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28"
     };
+    /* No token means no Authorization header, which is a different request and not a broken one:
+       on a public repository GitHub answers reads anonymously. It answers far fewer of them - see
+       the rate-limit handling in poll() - so the absence is deliberate, not an oversight. */
     if (opts.token) { headers.Authorization = "Bearer " + opts.token; }
     if (opts.body) { headers["Content-Type"] = "application/json"; }
     return fetch(API + path, {
@@ -778,6 +844,8 @@
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined
     }).then(function (res) {
+      var left = res.headers.get("x-ratelimit-remaining");
+      if (left !== null) { budget = parseInt(left, 10); }
       if (res.status === 204) { return { status: 204, data: null }; }
       return res.json().then(
         function (d) { return { status: res.status, data: d }; },
@@ -816,8 +884,9 @@
 
   function show(el, on) { el.className = el.className.replace(/\s*\bhidden\b/g, "") + (on ? "" : " hidden"); }
 
-  function say(state, headline, detail, err) {
+  function say(state, headline, detail, err, runningSince) {
     live.setAttribute("data-state", state);
+    clock(state === "working" ? runningSince : null);
     liveState.textContent = headline;
     liveDetail.textContent = detail || "";
     liveErr.textContent = err || "";
@@ -832,12 +901,39 @@
     return m ? m + "m " + (s % 60) + "s" : s + "s";
   }
 
+  /* The counter ticks on its own rather than on each poll. Polls are twenty seconds apart at best
+     and two minutes apart at worst, and a number that sits still for two minutes reads as a page
+     that has stopped. */
+  var liveClock = id("live_clock"), ticking = null;
+
+  function clock(startedAt) {
+    stopClock();
+    if (!startedAt) { liveClock.textContent = ""; return; }
+    function tick() {
+      var s = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      var mm = Math.floor(s / 60), ss = s % 60;
+      liveClock.textContent = "";
+      liveClock.appendChild(document.createTextNode(
+        mm ? mm + ":" + (ss < 10 ? "0" : "") + ss : ss + ""));
+      liveClock.appendChild(document.createElement("span")).className = "unit";
+      liveClock.lastChild.textContent = mm ? "elapsed" : "seconds";
+    }
+    tick();
+    ticking = setInterval(tick, 1000);
+  }
+  function stopClock() { if (ticking) { clearInterval(ticking); ticking = null; } }
+
   function stopWatching() {
     if (watching) { clearTimeout(watching); watching = null; }
   }
 
+  var LOG_LABEL = "Open the run on GitHub";
+
   function forget() {
     stopWatching();
+    stopClock();
+    liveClock.textContent = "";
+    liveLog.textContent = LOG_LABEL;
     store(LS_RUN, null);
     show(liveCard, false);
     show(id("actions"), true);
@@ -847,10 +943,21 @@
   liveClear.addEventListener("click", forget);
 
   /* --- find the run this page started ------------------------------- */
-  function findRun(token, buildId, startedAt, tries) {
+  function findRun(token, buildId, startedAt, waitingFor) {
+    var elapsed = Date.now() - startedAt;
     api("/repos/" + repo + "/actions/runs?event=workflow_dispatch&per_page=30", { token: token })
       .then(function (res) {
         if (res.status !== 200) {
+          if (res.status === 403 && !token) {
+            /* Sixty an hour is the anonymous allowance, and a shared address spends it on more
+               than this page. Say so and point at the two ways out, rather than spin. */
+            say("working", "GitHub stopped answering",
+                "The hourly allowance for requests without a token is used up on this address. "
+                + "The build is unaffected - it is running. Open it on GitHub, or come back in an "
+                + "hour and this page will pick it up again.", "", startedAt);
+            show(liveLog, true); show(liveClear, true);
+            return;
+          }
           say("failed", "Could not read the runs", "", explain(res, "read Actions"));
           show(liveClear, true);
           return;
@@ -862,16 +969,32 @@
           if (n.indexOf(buildId) >= 0) { mine = runs[i]; break; }
         }
         if (mine) { watchRun(token, mine.id, startedAt); return; }
-        if (tries > 20) {
-          say("failed", "The run never appeared",
-              "GitHub accepted the request but no run carrying this build's id showed up in three "
-              + "minutes.", "");
+
+        /* A dispatch starts in seconds. An issue has to be submitted by a person first, so the
+           page says what it is waiting for and gives them a quarter of an hour to do it. */
+        var limit = waitingFor === "submit" ? 900000 : 180000;
+        if (elapsed > limit) {
+          say("failed",
+              waitingFor === "submit" ? "No request arrived" : "The run never appeared",
+              waitingFor === "submit"
+                ? "Nothing carrying this build's id turned up in fifteen minutes. If you did press "
+                  + "Submit, the comment on the issue says what happened to it."
+                : "GitHub accepted the request but no run carrying this build's id showed up.",
+              "");
           liveLog.href = "https://github.com/" + repo + "/actions/workflows/build.yml";
           show(liveLog, true); show(liveClear, true);
           return;
         }
-        say("working", "Queued", "Waiting for GitHub to start the run - " + since(startedAt) + ".");
-        watching = setTimeout(function () { findRun(token, buildId, startedAt, tries + 1); }, 9000);
+        if (waitingFor === "submit") {
+          say("working", "Waiting for you",
+              "Press " + String.fromCharCode(8220) + "Submit new issue" + String.fromCharCode(8221)
+              + " in the GitHub tab. Nothing is built until you do - this page keeps watching.",
+              "", startedAt);
+        } else {
+          say("working", "Queued", "Waiting for GitHub to start the run.", "", startedAt);
+        }
+        watching = setTimeout(function () { findRun(token, buildId, startedAt, waitingFor); },
+                              gap(token, elapsed));
       }, function () {
         say("failed", "Could not reach GitHub",
             "The request to api.github.com did not complete.", "");
@@ -894,9 +1017,10 @@
       var run = res.data;
       if (run.status !== "completed") {
         say("working", run.status === "in_progress" ? "Building" : "Queued",
-            "Running for " + since(startedAt) + ". It usually takes a while: the image is "
-            + "downloaded, verified, opened in a FreeBSD VM and recompressed.");
-        watching = setTimeout(function () { watchRun(token, runId, startedAt); }, 15000);
+            "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
+            + "recompressed.", "", startedAt);
+        watching = setTimeout(function () { watchRun(token, runId, startedAt); },
+                              gap(token, Date.now() - startedAt));
         return;
       }
       if (run.conclusion !== "success") {
@@ -907,7 +1031,7 @@
       }
       artifact(token, runId, startedAt);
     }, function () {
-      say("working", "Waiting", "Could not reach GitHub just now - trying again.");
+      say("working", "Waiting", "Could not reach GitHub just now - trying again.", "", startedAt);
       watching = setTimeout(function () { watchRun(token, runId, startedAt); }, 20000);
     });
   }
@@ -945,7 +1069,6 @@
   var remembered = recall(LS_TOKEN);
   if (remembered) { tokenEl.value = remembered; keepEl.checked = true; }
   function tokenChanged() {
-    buildBtn.disabled = !tokenEl.value.trim();
     if (keepEl.checked) { store(LS_TOKEN, tokenEl.value.trim() || null); }
   }
   tokenEl.addEventListener("input", tokenChanged);
@@ -958,15 +1081,21 @@
     var req = values();
     if (!req.project_ref) { el.project_ref.focus(); return; }
     var token = tokenEl.value.trim();
-    if (!token) { tokenEl.focus(); return; }
+    if (!token) {
+      /* Nothing to grey out and nothing to guess at: open the field this button needs and put the
+         cursor in it. */
+      id("token_block").open = true;
+      tokenEl.focus();
+      return;
+    }
 
-    var buildId = "web-" + Date.now().toString(36) + "-"
-                + Math.random().toString(36).slice(2, 8);
+    var buildId = nonce();
     var startedAt = Date.now();
     req.build_id = buildId;
 
     stopWatching();
-    say("working", "Starting", "Asking GitHub to run the workflow.");
+    liveLog.textContent = LOG_LABEL;
+    say("working", "Starting", "Asking GitHub to run the workflow.", "", startedAt);
 
     api("/repos/" + repo + "/actions/workflows/build.yml/dispatches",
         { token: token, method: "POST", body: { ref: "main", inputs: req } })
@@ -976,7 +1105,7 @@
           show(liveClear, true);
           return;
         }
-        findRun(token, buildId, startedAt, 0);
+        findRun(token, buildId, startedAt, "run");
       }, function () {
         say("failed", "Could not reach GitHub",
             "The request to api.github.com did not complete. A browser extension or a network "
@@ -994,8 +1123,8 @@
     if (!saved || saved.repo !== repo || !saved.id) { store(LS_RUN, null); return; }
     var token = tokenEl.value.trim();
     if (!token) {
-      say("working", "A build is running", "Started " + since(saved.at)
-          + " ago. Put the token back to watch it here, or open it on GitHub.");
+      say("working", "A build is running",
+          "Put the token back to watch it here, or open it on GitHub.", "", saved.at);
       liveLog.href = "https://github.com/" + repo + "/actions/runs/" + saved.id;
       show(liveLog, true); show(liveClear, true);
       return;
@@ -1006,7 +1135,7 @@
   /* A redirect to github.com can be blocked, and the issue form can be reached by hand. Say when
      the copy failed rather than leave the reader thinking it worked. */
   id("copy").addEventListener("click", function () {
-    var req = compose();
+    var req = compose(null);
     var said = id("copied");
     if (!req) { return; }
     function ok() { said.textContent = "Copied. Paste it into a new issue labelled “build”."; }
