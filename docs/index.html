@@ -3,208 +3,507 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Build an XGS image</title>
+<title>XGS Image Builder</title>
+<meta name="description" content="Choose the options for an OPNsense image for a Sophos XGS appliance, and open a build request.">
 <!--
-  A static page. It holds no credentials and calls no API.
+  A static page. It holds no credentials, calls no API, and loads nothing from anywhere - every
+  style, icon and script below is in this file. That is deliberate: the page's whole job is to be
+  readable and trustworthy at a glance, and a page that pulls a stylesheet off a CDN can stop
+  looking like itself the day that file is renamed.
 
-  All it does is read the dropdowns and send you to this repository's "new issue" page with the
+  All it does is read the controls and send you to this repository's "new issue" page with the
   title and body already filled in. You press Submit there, and a workflow picks the issue up and
-  runs the build. That is the whole mechanism, and it is why no token is needed: GitHub's own issue
-  form does the authenticating.
+  runs the build. That is why no token is needed: GitHub's own issue form does the authenticating.
 
   The repository is worked out from this page's own URL, so a fork that publishes Pages gets a page
   that files issues on the fork and builds in the fork's account. That matters - see CONTRIBUTING.md.
+
+  Every dropdown here must match a choice input in .github/workflows/build.yml, in the same order.
+  tools/check-options.py fails the build if they drift, so change both or neither.
 -->
 <style>
   :root {
-    --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0;
-    --field: #ffffff; --accent: #0969da; --accent-fg: #ffffff; --warn-bg: #fff8c5; --warn-line: #d4a72c;
+    --bg: #ffffff; --raised: #f6f8fa; --fg: #1f2328; --muted: #59636e; --faint: #818b98;
+    --line: #d1d9e0; --line-soft: #e4e8ed; --field: #ffffff;
+    --accent: #0969da; --accent-hi: #0860ca; --on-accent: #ffffff;
+    --warn-bg: #fff8c5; --warn-line: #d4a72c; --warn-fg: #4a3c0c;
+    --info-bg: #ddf4ff; --info-line: #54aeff; --info-fg: #0a3069;
+    --stop-bg: #ffebe9; --stop-line: #ff818a; --stop-fg: #6e1317;
+    --shadow: 0 1px 0 rgba(31,35,40,.04), 0 1px 3px rgba(31,35,40,.08);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d;
-      --field: #0d1117; --accent: #4493f8; --accent-fg: #0d1117; --warn-bg: #282215; --warn-line: #9e6a03;
+      --bg: #0d1117; --raised: #151b23; --fg: #e6edf3; --muted: #9198a1; --faint: #6e7681;
+      --line: #3d444d; --line-soft: #262c36; --field: #0d1117;
+      --accent: #4493f8; --accent-hi: #6cb0ff; --on-accent: #0d1117;
+      --warn-bg: #282215; --warn-line: #9e6a03; --warn-fg: #f0d58c;
+      --info-bg: #121d2f; --info-line: #1f6feb; --info-fg: #a5d6ff;
+      --stop-bg: #2b1416; --stop-line: #a0313a; --stop-fg: #ffb3ae;
+      --shadow: 0 1px 0 rgba(1,4,9,.3), 0 1px 3px rgba(1,4,9,.5);
+      --chevron-dark: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%239198a1' d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d;
-    --field: #0d1117; --accent: #4493f8; --accent-fg: #0d1117; --warn-bg: #282215; --warn-line: #9e6a03;
+    --bg: #0d1117; --raised: #151b23; --fg: #e6edf3; --muted: #9198a1; --faint: #6e7681;
+    --line: #3d444d; --line-soft: #262c36; --field: #0d1117;
+    --accent: #4493f8; --accent-hi: #6cb0ff; --on-accent: #0d1117;
+    --warn-bg: #282215; --warn-line: #9e6a03; --warn-fg: #f0d58c;
+    --info-bg: #121d2f; --info-line: #1f6feb; --info-fg: #a5d6ff;
+    --stop-bg: #2b1416; --stop-line: #a0313a; --stop-fg: #ffb3ae;
+    --shadow: 0 1px 0 rgba(1,4,9,.3), 0 1px 3px rgba(1,4,9,.5);
+    --chevron-dark: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%239198a1' d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
   }
+
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--fg);
-    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
   }
-  main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
-  h1 { font-size: 1.6rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
-  .sub { color: var(--muted); margin: 0 0 1.75rem; }
-  .warn {
-    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 6px;
-    padding: .75rem .9rem; margin: 0 0 1.75rem; font-size: .93rem;
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, kbd { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: .875em; }
+  kbd {
+    background: var(--raised); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 5px; padding: .05em .35em; font-size: .8em; color: var(--fg);
   }
-  .warn b { display: block; margin-bottom: .2rem; }
-  fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 1.1rem 1.1rem .4rem; margin: 0 0 1.25rem; }
-  legend { padding: 0 .4rem; font-weight: 600; font-size: .9rem; color: var(--muted); }
-  label { display: block; margin-bottom: 1rem; }
-  label > span { display: block; font-weight: 600; font-size: .92rem; margin-bottom: .3rem; }
-  label > em { display: block; font-style: normal; color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+
+  /* ---- shell ---------------------------------------------------------- */
+  .topbar { border-bottom: 1px solid var(--line-soft); background: var(--raised); }
+  .topbar-in {
+    max-width: 52rem; margin: 0 auto; padding: .7rem 16px;
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+  }
+  .topbar-in .mark { flex: none; }
+  .crumb { font-size: .9rem; color: var(--muted); min-width: 0; }
+  .crumb b { color: var(--fg); font-weight: 600; }
+  .topbar-in .spacer { flex: 1 1 auto; }
+  .topbar-in .links { font-size: .875rem; display: flex; gap: .9rem; flex-wrap: wrap; }
+
+  main { max-width: 52rem; margin: 0 auto; padding: 2rem 16px 4rem; }
+
+  .hero { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.5rem; }
+  .hero .mark { flex: none; margin-top: .2rem; }
+  h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 .3rem; letter-spacing: -.02em; }
+  .lede { color: var(--muted); margin: 0; font-size: 1.02rem; }
+
+  /* ---- the three steps ------------------------------------------------ */
+  .steps { display: flex; gap: .5rem; margin: 0 0 1.5rem; flex-wrap: wrap; }
+  .step {
+    flex: 1 1 11rem; min-width: 0; display: flex; gap: .6rem; align-items: flex-start;
+    border: 1px solid var(--line-soft); border-radius: 8px; padding: .65rem .75rem;
+    background: var(--bg); font-size: .875rem; color: var(--muted);
+  }
+  .step .n {
+    flex: none; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+    background: var(--raised); border: 1px solid var(--line);
+    display: grid; place-items: center; font-size: .78rem; font-weight: 600; color: var(--muted);
+  }
+  .step.now { border-color: var(--accent); background: var(--info-bg); color: var(--info-fg); }
+  .step.now .n { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .step b { display: block; color: inherit; font-weight: 600; }
+  .step.now b { color: var(--info-fg); }
+
+  /* ---- callouts ------------------------------------------------------- */
+  .note {
+    border: 1px solid var(--line); border-left-width: 4px; border-radius: 6px;
+    padding: .7rem .85rem; margin: 0 0 1.25rem; font-size: .925rem;
+  }
+  .note > :first-child { margin-top: 0; }
+  .note > :last-child { margin-bottom: 0; }
+  .note.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-fg); }
+  .note.info { background: var(--info-bg); border-color: var(--info-line); color: var(--info-fg); }
+  .note.stop { background: var(--stop-bg); border-color: var(--stop-line); color: var(--stop-fg); }
+  .note strong { font-weight: 600; }
+  .note a { color: inherit; text-decoration: underline; }
+  .note.hide { display: none; }
+
+  /* ---- boxes ---------------------------------------------------------- */
+  .box {
+    border: 1px solid var(--line); border-radius: 8px; margin: 0 0 1.1rem;
+    background: var(--bg); box-shadow: var(--shadow); overflow: hidden;
+  }
+  .box-head {
+    background: var(--raised); border-bottom: 1px solid var(--line);
+    padding: .6rem .9rem; font-size: .9rem; font-weight: 600;
+    display: flex; gap: .5rem; align-items: center;
+  }
+  .box-head .why { font-weight: 400; color: var(--muted); font-size: .85rem; }
+  .box-body { padding: 1rem .9rem; }
+
+  .field + .field { margin-top: 1.15rem; padding-top: 1.15rem; border-top: 1px solid var(--line-soft); }
+  .field > label { display: block; font-weight: 600; font-size: .95rem; margin-bottom: .35rem; }
+  .hint { color: var(--muted); font-size: .865rem; margin: .4rem 0 0; }
+  .hint.live { color: var(--fg); }
+
   select, input[type=text] {
-    width: 100%; padding: .45rem .6rem; font: inherit; font-size: .95rem;
-    color: var(--fg); background: var(--field);
-    border: 1px solid var(--line); border-radius: 6px;
+    -webkit-appearance: none; appearance: none;
+    width: 100%; max-width: 30rem; padding: .5rem 2.2rem .5rem .7rem;
+    font: inherit; font-size: .95rem; color: var(--fg); background-color: var(--field);
+    border: 1px solid var(--line); border-radius: 6px; line-height: 1.4;
   }
-  button {
-    font: inherit; font-weight: 600; cursor: pointer;
-    background: var(--accent); color: var(--accent-fg);
-    border: 1px solid transparent; border-radius: 6px; padding: .55rem 1.1rem;
+  input[type=text] { padding-right: .7rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; }
+  select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2359636e' d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .55rem center; background-size: 1.1rem;
   }
-  button:disabled { opacity: .55; cursor: not-allowed; }
-  .row { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
-  .target { color: var(--muted); font-size: .88rem; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
-  ol { padding-left: 1.3rem; color: var(--muted); font-size: .92rem; }
-  a { color: var(--accent); }
+  select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  select:hover, input[type=text]:hover { border-color: var(--faint); }
+  /* The arrow is drawn into the background, not themed, so give the dark background its own copy
+     rather than leave a near-black glyph on it. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) select { background-image: var(--chevron-dark); }
+  }
+  :root[data-theme="dark"] select { background-image: var(--chevron-dark); }
+
+  /* ---- actions -------------------------------------------------------- */
+  .actions {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    margin: 1.5rem 0 .6rem;
+  }
+  button { font: inherit; font-size: .95rem; font-weight: 600; cursor: pointer; border-radius: 6px; padding: .55rem 1.05rem; }
+  .btn-primary { background: var(--accent); color: var(--on-accent); border: 1px solid transparent; }
+  .btn-primary:hover { background: var(--accent-hi); }
+  .btn { background: var(--raised); color: var(--fg); border: 1px solid var(--line); }
+  .btn:hover { border-color: var(--faint); }
+  .target { font-size: .875rem; color: var(--muted); }
+  .target b { color: var(--fg); font-weight: 600; }
+  .target.guessed b { color: var(--warn-fg); background: var(--warn-bg); padding: 0 .25rem; border-radius: 4px; }
+  #copied { font-size: .875rem; color: var(--muted); }
+
+  details { margin: .9rem 0 0; }
+  summary { cursor: pointer; font-size: .9rem; color: var(--muted); }
+  summary:hover { color: var(--accent); }
+  pre {
+    background: var(--raised); border: 1px solid var(--line-soft); border-radius: 6px;
+    padding: .7rem .8rem; overflow-x: auto; font-size: .85rem; margin: .6rem 0 0;
+  }
+
+  footer {
+    border-top: 1px solid var(--line-soft); margin-top: 2.5rem; padding-top: 1.1rem;
+    font-size: .875rem; color: var(--muted);
+  }
+  footer p { margin: 0 0 .6rem; }
+
+  @media (max-width: 34rem) {
+    h1 { font-size: 1.45rem; }
+    .box-head { flex-direction: column; align-items: flex-start; gap: .15rem; }
+    .hero .mark { display: none; }
+    .step { flex-basis: 100%; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>Build an XGS image</h1>
-  <p class="sub">An OPNsense image for a Sophos XGS appliance, with the
-  <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">os-xgs-npu</a> driver and plugin in it.</p>
 
-  <div class="warn">
-    <b>Nothing built here has been booted on an appliance.</b>
-    The build runs on a GitHub runner, which has no Sophos hardware attached to it. Burn an image
-    and boot it before relying on it.
+<div class="topbar">
+  <div class="topbar-in">
+    <svg class="mark" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+      <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0M1.5 8a6.5 6.5 0 0 1 11-4.69L3.31 12.5A6.47 6.47 0 0 1 1.5 8m6.5 6.5c-1.78 0-3.4-.72-4.57-1.88l9.19-9.19A6.5 6.5 0 0 1 8 14.5"/>
+    </svg>
+    <span class="crumb" id="crumb"><b>xgs-image-builder</b></span>
+    <span class="spacer"></span>
+    <span class="links">
+      <a id="lnk_readme" href="https://github.com/AbdelmonemAwad/xgs-image-builder#readme">README</a>
+      <a id="lnk_contrib" href="https://github.com/AbdelmonemAwad/xgs-image-builder/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a id="lnk_runs" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml">Builds</a>
+    </span>
+  </div>
+</div>
+
+<main>
+  <div class="hero">
+    <svg class="mark" width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+         stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2.5" y="6" width="19" height="12" rx="2"/>
+      <path d="M6 10h4M6 14h2"/>
+      <circle cx="17" cy="12" r="2.2"/>
+      <path d="M17 7.6v1M17 15.4v1M13.3 12h1M19.7 12h1"/>
+    </svg>
+    <div>
+      <h1>Build an XGS image</h1>
+      <p class="lede">An OPNsense image for a Sophos XGS appliance, with the
+      <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">os-xgs-npu</a> driver and plugin
+      already in it. Pick the options, and this page opens a build request for you.</p>
+    </div>
   </div>
 
-  <form id="f">
-    <fieldset>
-      <legend>The image</legend>
+  <div class="steps">
+    <div class="step now"><span class="n">1</span><span><b>Pick the options</b>You are here. Nothing
+      has started yet.</span></div>
+    <div class="step"><span class="n">2</span><span><b>Submit the issue</b>GitHub asks you to
+      confirm. Nothing runs until you do.</span></div>
+    <div class="step"><span class="n">3</span><span><b>Download the image</b>From the run's
+      artifacts, for seven days.</span></div>
+  </div>
 
-      <label><span>OPNsense release</span>
-        <select id="opnsense_version" name="opnsense_version">
-          <option value="26.7" selected>26.7</option>
-          <option value="26.1">26.1</option>
-        </select>
-      </label>
+  <div class="note warn">
+    <strong>This image has not been booted on any appliance. Burn one and boot it before relying on
+    it.</strong> The build runs on a GitHub runner, which has no Sophos hardware attached to it and
+    never will. Nothing on this page has been tested on a device.
+  </div>
 
-      <label><span>Image type</span>
-        <select id="image_type" name="image_type">
-          <option value="serial" selected>serial - for an appliance with no screen</option>
-          <option value="nano">nano</option>
-          <option value="vga">vga</option>
-          <option value="dvd">dvd - refused, see below</option>
-        </select>
-        <em id="type_note"></em>
-      </label>
-    </fieldset>
+  <div class="note stop hide" id="upstream_note">
+    <strong>You are looking at the original repository's page.</strong> A build only runs for the
+    account that owns the repository, so pressing the button here will file an issue that the
+    workflow politely declines. To build one for yourself:
+    <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/fork">fork the repository</a>, turn
+    on Pages for your fork (Settings, then Pages, branch <code>main</code>, folder
+    <code>/docs</code>), and use your fork's copy of this page. That is the licence position, and
+    the reason for it is in CONTRIBUTING.md: your build, your artifact, your storage.
+  </div>
 
-    <fieldset>
-      <legend>The console</legend>
+  <form id="f" novalidate>
+    <div class="box">
+      <div class="box-head">The image <span class="why">what gets written to the disk</span></div>
+      <div class="box-body">
 
-      <label><span>Serial console speed</span>
-        <select id="console_speed" name="console_speed">
-          <option value="115200" selected>115200 - the OPNsense default</option>
-          <option value="38400">38400 - what Sophos firmware uses</option>
-        </select>
-        <em>An XGS appliance has no screen. Choose the wrong one and it boots perfectly into a
-        console you cannot read.</em>
-      </label>
+        <div class="field">
+          <label for="opnsense_version">OPNsense release</label>
+          <select id="opnsense_version" name="opnsense_version">
+            <option value="26.7" selected>26.7 &mdash; what the driver is built against</option>
+            <option value="26.1">26.1</option>
+          </select>
+          <p class="hint">The official image is downloaded from OPNsense's own mirror at build time
+          and its checksum is verified. No part of it lives in this repository.</p>
+        </div>
 
-      <label><span>Console on the serial port only</span>
-        <select id="serial_console" name="serial_console">
-          <option value="yes" selected>yes</option>
-          <option value="no">no - serial and video</option>
-        </select>
-      </label>
-    </fieldset>
+        <div class="field">
+          <label for="image_type">Image type</label>
+          <select id="image_type" name="image_type">
+            <option value="serial" selected>serial &mdash; for an appliance with no screen</option>
+            <option value="nano">nano &mdash; smaller, for a flash disk</option>
+            <option value="vga">vga &mdash; only if you have a monitor on it</option>
+            <option value="dvd" disabled>dvd &mdash; not available, see below</option>
+          </select>
+          <p class="hint" id="type_hint"></p>
+        </div>
 
-    <fieldset>
-      <legend>The driver</legend>
-      <label><span>os-xgs-npu commit, tag or branch</span>
-        <input type="text" id="project_ref" name="project_ref" value="main" spellcheck="false">
-        <em>Fetched at build time. No copy of the project lives in this repository.</em>
-      </label>
-    </fieldset>
-
-    <div class="row">
-      <button type="submit" id="go">Open a build request</button>
-      <span class="target" id="target"></span>
+      </div>
     </div>
+
+    <div class="box">
+      <div class="box-head">The console <span class="why">the one choice that locks you out if it is
+        wrong</span></div>
+      <div class="box-body">
+
+        <div class="field">
+          <label for="console_speed">Serial console speed</label>
+          <select id="console_speed" name="console_speed">
+            <option value="115200" selected>115200 &mdash; the OPNsense default</option>
+            <option value="38400">38400 &mdash; what Sophos firmware uses</option>
+          </select>
+          <p class="hint live" id="speed_hint"></p>
+          <p class="hint">An XGS appliance has no screen, so the serial port is the only way in. If
+          this is wrong the appliance boots perfectly into a console you cannot read. Neither value
+          is safer than the other in the abstract: match whatever your terminal is set to.</p>
+        </div>
+
+        <div class="field">
+          <label for="serial_console">Where the console goes</label>
+          <select id="serial_console" name="serial_console">
+            <option value="yes" selected>Serial port only</option>
+            <option value="no">Serial port and video</option>
+          </select>
+          <p class="hint">On an appliance with no video output the two behave the same way. Leave it
+          on serial only unless you have a reason.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-head">The driver <span class="why">fetched at build time, not stored here</span></div>
+      <div class="box-body">
+        <div class="field">
+          <label for="project_ref">os-xgs-npu commit, tag or branch</label>
+          <input type="text" id="project_ref" name="project_ref" value="main" spellcheck="false"
+                 autocapitalize="off" autocorrect="off" aria-describedby="ref_hint">
+          <p class="hint" id="ref_hint">Leave this as <code>main</code> unless you know why not. The
+          source is placed in the image; <strong>no built module is</strong>, because a module has to
+          be built against the kernel the appliance is actually running.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-head">What you are asking for</div>
+      <div class="box-body">
+        <p class="hint live" id="summary" style="font-size:.95rem"></p>
+        <details>
+          <summary>The exact request the workflow will read</summary>
+          <pre id="json"><code></code></pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn-primary" id="go">Continue to GitHub</button>
+      <button type="button" class="btn" id="copy">Copy the request</button>
+      <span class="target" id="target"></span>
+      <span id="copied" role="status" aria-live="polite"></span>
+    </div>
+    <p class="hint">You will land on GitHub's new-issue page with the title and body already filled
+    in. Press <kbd>Submit new issue</kbd> there. Nothing is built until you do, and you can edit or
+    abandon it on that page.</p>
   </form>
 
-  <h2 style="font-size:1.05rem;margin:2.25rem 0 .5rem">What pressing that does</h2>
-  <ol>
-    <li>This page sends you to the repository's <b>new issue</b> form, filled in from your choices
-      above. It calls nothing and holds no credentials.</li>
-    <li>You press <b>Submit new issue</b> there. Nothing runs until you do.</li>
-    <li>A workflow reads the issue and starts the build, and comments with a link to the run.</li>
-    <li>When it finishes, the image is a workflow artifact on that run. It expires on its own.</li>
-  </ol>
-  <p class="sub" style="font-size:.9rem;margin-top:1.25rem">
-    The build only runs for the account that owns the repository, so that nobody else spends your
-    Actions minutes. To build one for yourself, fork the repository, enable Pages on your fork, and
-    use your fork's copy of this page - it will file the issue on your fork. That is the licence
-    position in <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>:
-    your build, your artifact, your storage.
-  </p>
+  <footer>
+    <p>This page holds no credentials and calls no API. It reads the controls above and hands the
+    result to GitHub's own issue form, which is why it never asks you for a token.</p>
+    <p>The finished image is a workflow <strong>artifact</strong> that expires after seven days, not
+    a release. <a id="lnk_runs2" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml">Past
+    and running builds</a> &middot; <a href="https://github.com/AbdelmonemAwad/xgs-image-builder">Source</a></p>
+  </footer>
 </main>
 
 <script>
 (function () {
   "use strict";
 
-  // Work the repository out of this page's own URL rather than hard-coding it, so a fork's Pages
-  // site files issues on the fork. user.github.io/<repo>/ gives both halves; a custom domain or a
-  // user/organisation root page gives neither, so fall back and say so rather than guess wrong.
+  /* Written the way GitHub writes it, because it is shown to the reader. Comparisons against it
+     are case-folded: a repository path is case-insensitive to GitHub but not to ===. */
+  var UPSTREAM = "AbdelmonemAwad/xgs-image-builder";
+  var FIELDS = ["opnsense_version", "image_type", "console_speed", "serial_console", "project_ref"];
+
+  /* Work the repository out of this page's own URL rather than hard-coding it, so a fork's Pages
+     site files issues on the fork. user.github.io/<repo>/ gives both halves; a custom domain or a
+     user or organisation root page gives neither, so fall back and say so rather than guess
+     silently. */
   function detectRepo() {
-    var host = location.hostname;
-    var m = host.match(/^([^.]+)\.github\.io$/i);
+    var m = location.hostname.match(/^([^.]+)\.github\.io$/i);
     var seg = location.pathname.split("/").filter(function (s) { return s.length; });
     if (m && seg.length) { return m[1] + "/" + seg[0]; }
     return null;
   }
 
-  var FALLBACK = "AbdelmonemAwad/xgs-image-builder";
-  var repo = detectRepo() || FALLBACK;
-  var guessed = !detectRepo();
+  var detected = detectRepo();
+  var repo = detected || UPSTREAM;
+  var el = {};
+  FIELDS.forEach(function (n) { el[n] = document.getElementById(n); });
+
+  /* --- the header and footer links follow whichever repository this page belongs to --- */
+  var base = "https://github.com/" + repo;
+  var half = repo.split("/");
+  /* The repository name comes out of the URL, so it is never written as markup - a path segment
+     that happened to contain a tag would otherwise end up executing. */
+  var crumb = document.getElementById("crumb");
+  crumb.textContent = half[0] + " / ";
+  crumb.appendChild(document.createElement("b")).textContent = half[1];
+  document.getElementById("lnk_readme").href = base + "#readme";
+  document.getElementById("lnk_contrib").href = base + "/blob/main/CONTRIBUTING.md";
+  document.getElementById("lnk_runs").href = base + "/actions/workflows/build.yml";
+  document.getElementById("lnk_runs2").href = base + "/actions/workflows/build.yml";
 
   var target = document.getElementById("target");
-  target.textContent = (guessed ? "will file on " : "files on ") + repo;
-  if (guessed) { target.title = "This page is not served from a user.github.io/<repo> URL, so the repository could not be read from the URL."; }
-
-  var typeNote = document.getElementById("type_note");
-  var typeSel = document.getElementById("image_type");
-  function noteType() {
-    typeNote.textContent = typeSel.value === "dvd"
-      ? "dvd is refused by the build: the installer ISO is read-only and whether files injected into it reach the installed system is unverified. Pick serial, nano or vga."
-      : "";
+  target.textContent = detected ? "files on " : "will file on ";
+  target.appendChild(document.createElement("b")).textContent = repo;
+  if (!detected) {
+    target.className = "target guessed";
+    target.title = "This page is not served from a user.github.io/<repo> URL, so the repository "
+      + "could not be read from it. Falling back to the original.";
   }
-  typeSel.addEventListener("change", noteType);
-  noteType();
+
+  /* The build declines anyone who does not own the repository, so say that here rather than let
+     the reader find out from a workflow comment. */
+  if (repo.toLowerCase() === UPSTREAM.toLowerCase()) {
+    document.getElementById("upstream_note").className = "note stop";
+  }
+
+  /* --- live explanation of the current choices --- */
+  var TYPE_HINT = {
+    serial: "The right answer for an XGS: the installed system talks over the serial port.",
+    nano: "A smaller image meant for a flash disk. It mounts parts of the filesystem read-only, "
+        + "so expect to grow it before building anything on the appliance.",
+    vga: "Only useful if the appliance has a video output you can reach. Most XGS models do not."
+  };
+
+  function describe(v) {
+    var where = v.serial_console === "yes" ? "serial port only" : "serial port and video";
+    return "OPNsense " + v.opnsense_version + ", " + v.image_type + " image, console on the "
+      + where + " at " + v.console_speed + " baud, with os-xgs-npu at " + v.project_ref
+      + " as source in the image.";
+  }
+
+  function values() {
+    var out = {};
+    for (var i = 0; i < FIELDS.length; i++) {
+      out[FIELDS[i]] = (el[FIELDS[i]].value || "").trim();
+    }
+    return out;
+  }
+
+  function requestBody(v) {
+    /* The workflow parses this JSON out of the issue body. Keep it the only machine-read thing in
+       there, fenced so a human reader sees what was asked for. */
+    return "```json\n" + JSON.stringify(v, null, 2) + "\n```\n";
+  }
+
+  function refresh() {
+    var v = values();
+    document.getElementById("type_hint").textContent = TYPE_HINT[v.image_type] || "";
+    document.getElementById("speed_hint").textContent = v.console_speed === "38400"
+      ? "Set your terminal to 38400 8N1. This is what the Sophos firmware used, so a cable that "
+        + "already worked with it will keep working."
+      : "Set your terminal to 115200 8N1. If a serial session that worked with the Sophos firmware "
+        + "now shows nothing, that firmware was at 38400 - come back and pick it.";
+    document.getElementById("summary").textContent = describe(v);
+    document.querySelector("#json code").textContent = JSON.stringify(v, null, 2);
+    document.getElementById("copied").textContent = "";
+  }
+
+  FIELDS.forEach(function (n) {
+    el[n].addEventListener("change", refresh);
+    el[n].addEventListener("input", refresh);
+  });
+  refresh();
+
+  /* --- the two buttons --- */
+  function compose() {
+    var v = values();
+    if (!v.project_ref) { el.project_ref.focus(); return null; }
+    return {
+      title: "build " + v.opnsense_version + " " + v.image_type + " at " + v.console_speed,
+      body: requestBody(v)
+    };
+  }
 
   document.getElementById("f").addEventListener("submit", function (ev) {
     ev.preventDefault();
-
-    var fields = ["opnsense_version", "image_type", "console_speed", "serial_console", "project_ref"];
-    var body = {};
-    for (var i = 0; i < fields.length; i++) {
-      var el = document.getElementById(fields[i]);
-      var v = (el.value || "").trim();
-      if (!v) { el.focus(); return; }
-      body[fields[i]] = v;
-    }
-
-    // The workflow parses this JSON out of the issue body. Keep it the only machine-read thing in
-    // there, fenced so a reader sees what was asked for.
-    var title = "build " + body.opnsense_version + " " + body.image_type + " at " + body.console_speed;
-    var text = "```json\n" + JSON.stringify(body, null, 2) + "\n```\n";
-
-    location.href = "https://github.com/" + repo + "/issues/new"
+    var req = compose();
+    if (!req) { return; }
+    location.href = base + "/issues/new"
       + "?labels=" + encodeURIComponent("build")
-      + "&title=" + encodeURIComponent(title)
-      + "&body=" + encodeURIComponent(text);
+      + "&title=" + encodeURIComponent(req.title)
+      + "&body=" + encodeURIComponent(req.body);
+  });
+
+  /* A redirect to github.com can be blocked, and the issue form can be reached by hand. Say when
+     the copy failed rather than leave the reader thinking it worked. */
+  document.getElementById("copy").addEventListener("click", function () {
+    var req = compose();
+    var said = document.getElementById("copied");
+    if (!req) { return; }
+    var text = req.body;
+    function ok() { said.textContent = "Copied. Paste it into a new issue labelled \"build\"."; }
+    function no() { said.textContent = "Could not copy - open the block above and select it."; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok, no);
+      return;
+    }
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      var done = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (done) { ok(); } else { no(); }
+    } catch (e) { no(); }
   });
 })();
 </script>
