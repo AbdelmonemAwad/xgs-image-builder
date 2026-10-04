@@ -108,6 +108,15 @@ jobs:
       # sync: sshfs shares the workspace instead of copying it in and out, which matters because
       # the decompressed image is over a gigabyte. The download and the recompression happen in
       # the guest too, so the large files never cross the boundary.
+      # The first build that ever ran failed inside the guest and its log could not be read from
+      # outside GitHub, which left nothing to work from but the step name. A forty-minute pipeline
+      # that moves gigabytes has to say where it is and what it has left, at every stage, so that
+      # the next failure is read rather than guessed at.
+      - name: Space before the guest starts
+        run: |
+          df -h /
+          echo "workspace: $(du -sh "${GITHUB_WORKSPACE}" 2>/dev/null | cut -f1)"
+
       - name: Inject, in a FreeBSD guest
         uses: vmactions/freebsd-vm@v1
         with:
@@ -119,10 +128,15 @@ jobs:
             set -eu
             cd "${GITHUB_WORKSPACE}"
 
-            echo "=== download"
-            fetch -o '${{ steps.release.outputs.file }}' '${{ steps.release.outputs.url }}'
+            # Each stage says where it is and what is left, because the whole of this runs inside
+            # a guest whose log is the only witness.
+            stage() { echo; echo "=== $1"; df -h . 2>/dev/null || true; }
 
-            echo "=== verify"
+            stage download
+            fetch -o '${{ steps.release.outputs.file }}' '${{ steps.release.outputs.url }}'
+            ls -lh '${{ steps.release.outputs.file }}'
+
+            stage verify
             # A firewall's boot device is on the other end of this.
             got=$(sha256 -q '${{ steps.release.outputs.file }}')
             want='${{ steps.release.outputs.sha256 }}'
@@ -134,12 +148,12 @@ jobs:
             fi
             echo "sha256 ok"
 
-            echo "=== decompress"
+            stage decompress
             bunzip2 -f '${{ steps.release.outputs.file }}'
             img=$(basename '${{ steps.release.outputs.file }}' .bz2)
             ls -lh "${img}"
 
-            echo "=== inject"
+            stage inject
             sh scripts/inject.sh \
               "${img}" \
               '${{ inputs.console_speed }}' \
@@ -147,15 +161,22 @@ jobs:
               "${GITHUB_WORKSPACE}/project" \
               '${{ steps.project.outputs.stamp }}'
 
-            echo "=== repack"
+            stage repack
             out="xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img"
             mv "${img}" "${out}"
+            # xz writes the compressed file beside the original and removes it only at the end, so
+            # the high-water mark here is both of them at once.
             xz -T0 -6 "${out}"
+            stage done
             ls -lh "${out}.xz"
 
+      # Reports whatever is known, including after a failure - so it must not be able to fail
+      # itself and turn one red step into two.
       - name: Say what this is and what it is not
         if: always()
+        continue-on-error: true
         run: |
+          df -h / || true
           {
             echo '### Image'
             echo
