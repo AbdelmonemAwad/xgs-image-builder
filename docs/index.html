@@ -1138,7 +1138,7 @@
     var req = compose(null);
     var said = id("copied");
     if (!req) { return; }
-    function ok() { said.textContent = "Copied. Paste it into a new issue labelled “build”."; }
+    function ok() { said.textContent = "Copied. Paste it into the body of a new issue here - the block is what identifies it."; }
     function no() { said.textContent = "Could not copy - open the block above and select it."; }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(req.body).then(ok, no);

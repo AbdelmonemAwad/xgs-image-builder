@@ -13,11 +13,19 @@ name: Build from a request
 # name, and the page then watches for the run carrying its own id and hands over the artifact. The
 # reader presses Submit once and never has to find their way back.
 #
-# WHY IT ONLY RUNS FOR THE OWNER. CONTRIBUTING.md's licence position is that anyone else forks this
-# and builds in their own account - their build, their artifact, their storage. An issue-triggered
-# workflow with no author check would break that: a stranger could open an issue here and spend the
-# owner's Actions minutes to produce an image in the owner's storage. So the job is guarded, and a
-# request from anyone else gets a comment saying to fork rather than silence.
+# WHAT IDENTIFIES A REQUEST IS ITS BODY, NOT A LABEL. It used to be the label, and that was a real
+# defect rather than a tidier design: `issues/new?labels=build` only applies the label when the
+# person opening the issue has permission to label things in the repository. A stranger's request
+# arrived with no label at all, both jobs here were gated on it, and so BOTH were skipped - not even
+# the decline below ran. The request was correct, the page was correct, and the answer was silence.
+# So the JSON block is what says this is a request, read by the same parser that validates it, and
+# an issue without one is left alone.
+#
+# WHY IT ONLY BUILDS FOR THE OWNER. CONTRIBUTING.md's licence position is that anyone else forks
+# this and builds in their own account - their build, their artifact, their storage. Without an
+# author check a stranger could open an issue here and spend the owner's Actions minutes to produce
+# an image in the owner's storage. So the build is guarded, and everyone else is answered rather
+# than ignored.
 #
 # IT DOES NOT CONTAIN THE BUILD. It dispatches build.yml, which is the same workflow the Actions
 # page runs, with the same inputs. There is one build and one list of valid inputs - adding a second
@@ -25,7 +33,9 @@ name: Build from a request
 
 on:
   issues:
-    types: [ opened, labeled ]
+    # `opened` only. The label is no longer what triggers this, so `labeled` would do nothing but
+    # run the whole thing a second time on an issue already answered - and dispatch a second build.
+    types: [ opened ]
 
 permissions:
   contents: read
@@ -33,30 +43,39 @@ permissions:
   actions: write
 
 jobs:
-  dispatch:
-    # The label is what the page sets; the author check is what keeps the licence position true.
-    if: >-
-      contains(github.event.issue.labels.*.name, 'build') &&
-      github.event.issue.user.login == github.repository_owner
+  request:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       # Validated against build.yml's own option lists rather than against a copy kept here, so
-      # there is nothing to drift. A value the workflow would not accept is refused with a comment.
+      # there is nothing to drift. The issue body reaches it through the environment and never
+      # through a shell word.
       - name: Read the request
         id: req
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: python3 tools/read-request.py >> "$GITHUB_OUTPUT"
 
+      # Every step below is gated on this. An ordinary issue - a bug report, a question - carries no
+      # JSON block, and the right answer to one of those is nothing at all.
+      - name: Say what was found
+        run: |
+          echo "request=${{ steps.req.outputs.request }} ok=${{ steps.req.outputs.ok }}"
+          if [ '${{ steps.req.outputs.request }}' != 'true' ]; then
+            echo "Not a build request. Nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Start the build
-        if: steps.req.outputs.ok == 'true'
+        if: >-
+          steps.req.outputs.request == 'true' &&
+          steps.req.outputs.ok == 'true' &&
+          github.event.issue.user.login == github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run build.yml \
-            --ref "${{ github.ref_name }}" \
+            --ref "${{ github.event.repository.default_branch }}" \
             -f opnsense_version="${{ steps.req.outputs.opnsense_version }}" \
             -f image_type="${{ steps.req.outputs.image_type }}" \
             -f console_speed="${{ steps.req.outputs.console_speed }}" \
@@ -64,43 +83,57 @@ jobs:
             -f project_ref="${{ steps.req.outputs.project_ref }}" \
             -f build_id="${{ steps.req.outputs.build_id }}"
 
-      - name: Say what happened
-        if: always()
+      - name: It is building
+        if: >-
+          steps.req.outputs.request == 'true' &&
+          steps.req.outputs.ok == 'true' &&
+          github.event.issue.user.login == github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUNS: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/build.yml
         run: |
-          if [ '${{ steps.req.outputs.ok }}' = 'true' ]; then
-            gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
-              "Build started: OPNsense \`${{ steps.req.outputs.opnsense_version }}\` \`${{ steps.req.outputs.image_type }}\` at \`${{ steps.req.outputs.console_speed }}\` baud, os-xgs-npu \`${{ steps.req.outputs.project_ref }}\`." \
-              "" \
-              "It is the newest run under [Build image](${RUNS}). The image is an artifact on that run and expires on its own." \
-              "" \
-              "It has not been booted on an appliance. Burn it and boot it before relying on it.")"
-          else
-            gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
-              "This request was not started." \
-              "" \
-              "\`\`\`" \
-              "${{ steps.req.outputs.why }}" \
-              "\`\`\`" \
-              "" \
-              "Fill the form in again at the build page and submit the issue it prepares.")"
-          fi
+          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+            "Build started: OPNsense \`${{ steps.req.outputs.opnsense_version }}\` \`${{ steps.req.outputs.image_type }}\` at \`${{ steps.req.outputs.console_speed }}\` baud, os-xgs-npu \`${{ steps.req.outputs.project_ref }}\`." \
+            "" \
+            "It is the newest run under [Build image](${RUNS}). The build page you filed this from is already watching for it and will hand you the download; the image is an artifact on that run and expires on its own." \
+            "" \
+            "It has not been booted on an appliance. Burn it and boot it before relying on it.")"
 
-  # A request from anyone else: answered rather than ignored, and nothing is built.
-  decline:
-    if: >-
-      contains(github.event.issue.labels.*.name, 'build') &&
-      github.event.issue.user.login != github.repository_owner
-    runs-on: ubuntu-latest
-    steps:
-      - env:
+      # A request that is a request and is wrong. Answered with the reason, because the page that
+      # filed it is sitting there waiting for a run that is never going to start.
+      - name: It is malformed
+        if: >-
+          steps.req.outputs.request == 'true' &&
+          steps.req.outputs.ok != 'true' &&
+          github.event.issue.user.login == github.repository_owner
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
-            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes." \
+            "This request was not started." \
             "" \
-            "To build one for yourself: fork this repository, turn on Pages for the fork (Settings -> Pages -> branch \`main\`, folder \`/docs\`), and use your fork's copy of the build page. It files the issue on your fork and builds in your account - your build, your artifact, your storage, which is the licence position in CONTRIBUTING.md." \
+            "\`\`\`" \
+            "${{ steps.req.outputs.why }}" \
+            "\`\`\`" \
             "" \
-            "Nothing was built.")"
+            "Fill the form in again at the build page and submit the issue it prepares. Nothing is building, so the page watching for it will time out.")"
+
+      # A request from anyone else: answered rather than ignored, and nothing is built. This is the
+      # step the label gate used to skip, which is how a correct request from another account got
+      # no reply of any kind.
+      - name: It belongs in your own fork
+        if: >-
+          steps.req.outputs.request == 'true' &&
+          github.event.issue.user.login != github.repository_owner
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+            "Nothing was built, and the page you filed this from will time out waiting - that is this repository refusing, not a fault." \
+            "" \
+            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes. To build one for yourself:" \
+            "" \
+            "1. Fork this repository." \
+            "2. On your fork, open the **Actions** tab and enable workflows - GitHub disables them on a new fork until its owner says otherwise." \
+            "3. **Settings -> Pages -> branch \`main\`, folder \`/docs\`.**" \
+            "4. Open your fork's copy of the build page and press **Build it** there. It files on your fork and builds in your account - your build, your artifact, your storage, which is the licence position in CONTRIBUTING.md.")"
