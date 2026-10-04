@@ -1133,8 +1133,22 @@
         return;
       }
       if (run.conclusion !== "success") {
-        say("failed", "The build " + (run.conclusion || "did not finish"),
-            "It ran for " + since(startedAt) + ". The log says why.", "");
+        /* GitHub's own word for it - "failure", "timed_out", "startup_failure" - is a noun in a
+           machine's vocabulary, and reading "The build failure" is how the first real failure was
+           reported to someone. */
+        var ENDED = {
+          failure: "The build failed",
+          cancelled: "The build was cancelled",
+          timed_out: "The build ran out of time",
+          startup_failure: "The build never started",
+          action_required: "The build is waiting for approval",
+          neutral: "The build ended without a result",
+          skipped: "The build was skipped"
+        };
+        say("failed", ENDED[run.conclusion] || "The build did not finish",
+            "It ran for " + since(startedAt) + ". Open it: the step that went red names itself, "
+            + "and the log under it says what it was doing.", "");
+        show(liveLog, true);
         show(liveClear, true);
         return;
       }

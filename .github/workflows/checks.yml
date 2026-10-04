@@ -64,6 +64,13 @@ jobs:
       - name: The request parser refuses what it should
         run: sh tools/test-read-request.sh
 
+      # The defect that killed the first build that ever ran, and the step that was supposed to
+      # explain it: a commit subject containing an apostrophe, pasted into shell source by GitHub
+      # before any shell saw it. There is no quoting that survives a value somebody else chose,
+      # because the quoting is part of the same text. This allows no exceptions.
+      - name: No workflow pastes a value into a script
+        run: python3 tools/check-no-interpolation.py .
+
       # The one step with a dependency, and the one that needs a browser. It exists because the
       # page stopped being a form: it holds a token, calls api.github.com, turns status codes into
       # sentences and polls for a run it has to recognise as its own. None of that shows in a diff.

@@ -363,6 +363,31 @@ async function openRoute(mock) {
   await ctx.c.close();
 }
 
+// ------------------------------------------------- 3d. a build that fails is reported in English
+for (const [conclusion, want] of [
+  ['failure', 'The build failed'],
+  ['timed_out', 'The build ran out of time'],
+  ['cancelled', 'The build was cancelled'],
+  ['something_new', 'The build did not finish'],
+]) {
+  let bid = null;
+  const ctx = await openRoute((req) => {
+    const u = req.url();
+    if (u.includes('/issues?')) return { status: 200, body: [{ number: 9, body: 'x ' + bid, html_url: 'u' }] };
+    if (u.includes('/issues/9/comments')) return { status: 200, body: [{ body: STARTED }] };
+    if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs: [{ id: 4, name: bid, display_title: bid }] } };
+    return { status: 200, body: { status: 'completed', conclusion: conclusion } };
+  });
+  bid = ctx.bid;
+  await ctx.p.waitForFunction(() => document.getElementById('live').dataset.state === 'failed', null, { timeout: 40000 });
+  const v = await live(ctx.p);
+  check('conclusion "' + conclusion + '" reads as a sentence', v.head === want, v.head);
+  if (conclusion === 'failure') {
+    check('and it offers the run so the log can be read', !!v.log, 'no link');
+  }
+  await ctx.c.close();
+}
+
 // ---------------------------------------------------------------- 4. the token route still works
 {
   const { p, c } = await page(() => ({ status: 200, body: {} }));

@@ -64,10 +64,21 @@ jobs:
 
       # Every step below is gated on this. An ordinary issue - a bug report, a question - carries no
       # JSON block, and the right answer to one of those is nothing at all.
+      # Every step below is gated on this. An ordinary issue - a bug report, a question - carries
+      # no JSON block, and the right answer to one of those is nothing at all.
+      #
+      # NOTHING BELOW PASTES A VALUE INTO A SCRIPT. `${{ ... }}` is substituted into the text of a
+      # run block before any shell sees it, so a value containing a quote becomes code. `why` is
+      # free text built from whatever was in the issue, which makes that reachable from outside.
+      # Values arrive through `env:` and are read as $NAME; tools/check-no-interpolation.py fails
+      # the build if one creeps back in.
       - name: Say what was found
+        env:
+          REQUEST: ${{ steps.req.outputs.request }}
+          OK: ${{ steps.req.outputs.ok }}
         run: |
-          echo "request=${{ steps.req.outputs.request }} ok=${{ steps.req.outputs.ok }}"
-          if [ '${{ steps.req.outputs.request }}' != 'true' ]; then
+          echo "request=${REQUEST} ok=${OK}"
+          if [ "${REQUEST}" != 'true' ]; then
             echo "Not a build request. Nothing to do." >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -78,15 +89,23 @@ jobs:
           github.event.issue.user.login == github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.event.repository.default_branch }}
+          OPN_VERSION: ${{ steps.req.outputs.opnsense_version }}
+          IMAGE_TYPE: ${{ steps.req.outputs.image_type }}
+          CONSOLE_SPEED: ${{ steps.req.outputs.console_speed }}
+          SERIAL_CONSOLE: ${{ steps.req.outputs.serial_console }}
+          PROJECT_REF: ${{ steps.req.outputs.project_ref }}
+          BUILD_ID: ${{ steps.req.outputs.build_id }}
         run: |
+          set -eu
           gh workflow run build.yml \
-            --ref "${{ github.event.repository.default_branch }}" \
-            -f opnsense_version="${{ steps.req.outputs.opnsense_version }}" \
-            -f image_type="${{ steps.req.outputs.image_type }}" \
-            -f console_speed="${{ steps.req.outputs.console_speed }}" \
-            -f serial_console="${{ steps.req.outputs.serial_console }}" \
-            -f project_ref="${{ steps.req.outputs.project_ref }}" \
-            -f build_id="${{ steps.req.outputs.build_id }}"
+            --ref "$REF" \
+            -f opnsense_version="$OPN_VERSION" \
+            -f image_type="$IMAGE_TYPE" \
+            -f console_speed="$CONSOLE_SPEED" \
+            -f serial_console="$SERIAL_CONSOLE" \
+            -f project_ref="$PROJECT_REF" \
+            -f build_id="$BUILD_ID"
 
       - name: It is building
         if: >-
@@ -95,16 +114,23 @@ jobs:
           github.event.issue.user.login == github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
           RUNS: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/build.yml
+          OPN_VERSION: ${{ steps.req.outputs.opnsense_version }}
+          IMAGE_TYPE: ${{ steps.req.outputs.image_type }}
+          CONSOLE_SPEED: ${{ steps.req.outputs.console_speed }}
+          PROJECT_REF: ${{ steps.req.outputs.project_ref }}
         run: |
-          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
-            "Build started: OPNsense \`${{ steps.req.outputs.opnsense_version }}\` \`${{ steps.req.outputs.image_type }}\` at \`${{ steps.req.outputs.console_speed }}\` baud, os-xgs-npu \`${{ steps.req.outputs.project_ref }}\`." \
+          set -eu
+          body=$(printf '%s\n' \
+            "Build started: OPNsense \`${OPN_VERSION}\` \`${IMAGE_TYPE}\` at \`${CONSOLE_SPEED}\` baud, os-xgs-npu \`${PROJECT_REF}\`." \
             "" \
             "It is the newest run under [Build image](${RUNS}). The build page you filed this from is already watching for it and will hand you the download; the image is an artifact on that run and expires on its own." \
             "" \
             "It has not been booted on an appliance. Burn it and boot it before relying on it." \
             "" \
-            "<!-- xgs-result: started -->")"
+            "<!-- xgs-result: started -->")
+          gh issue comment "$ISSUE" --body "$body"
 
       # A request that is a request and is wrong. Answered with the reason, because the page that
       # filed it is sitting there waiting for a run that is never going to start.
@@ -115,17 +141,21 @@ jobs:
           github.event.issue.user.login == github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          WHY: ${{ steps.req.outputs.why }}
         run: |
-          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+          set -eu
+          body=$(printf '%s\n' \
             "This request was not started." \
             "" \
-            "\`\`\`" \
-            "${{ steps.req.outputs.why }}" \
-            "\`\`\`" \
+            '```' \
+            "${WHY}" \
+            '```' \
             "" \
             "Fill the form in again at the build page and submit the issue it prepares. The page that filed this reads this comment, so it already knows nothing is building." \
             "" \
-            "<!-- xgs-result: malformed -->")"
+            "<!-- xgs-result: malformed -->")
+          gh issue comment "$ISSUE" --body "$body"
 
       # A request from anyone else: answered rather than ignored, and nothing is built. This is the
       # step the label gate used to skip, which is how a correct request from another account got
@@ -136,8 +166,10 @@ jobs:
           github.event.issue.user.login != github.repository_owner
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
         run: |
-          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+          set -eu
+          body=$(printf '%s\n' \
             "Nothing was built. That is this repository refusing, not a fault - and the page you filed this from reads this comment, so it has already told you." \
             "" \
             "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes. Two ways to get your own, and the first is one press:" \
@@ -147,4 +179,5 @@ jobs:
             "" \
             "Either way it is your build, your artifact, your storage - the licence position in CONTRIBUTING.md." \
             "" \
-            "<!-- xgs-result: declined -->")"
+            "<!-- xgs-result: declined -->")
+          gh issue comment "$ISSUE" --body "$body"
