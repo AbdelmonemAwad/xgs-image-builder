@@ -1,0 +1,64 @@
+name: checks
+
+# What a change here has to survive. Everything is cheap and deterministic: it parses files and
+# compares them with each other.
+#
+# IT DOES NOT BUILD AN IMAGE and cannot. There is no Sophos appliance on a GitHub runner, and the
+# build needs a FreeBSD guest and a gigabyte of download. A green tick here says the scripts parse,
+# the request parser refuses what it should, and the page and the workflow offer the same choices.
+# It says nothing about whether an image boots.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell parses
+        run: |
+          for f in scripts/*.sh tools/*.sh; do
+            [ -f "$f" ] || continue
+            sh -n "$f" && echo "ok $f"
+          done
+
+      # sh -n is not enough on its own and this repository has the scar: a ${ } expansion holding a
+      # command substitution parses and then dies with "Bad substitution" at run time, in a branch
+      # that only fires on a small image. So the scripts are also exercised where they can be.
+      - name: Python parses
+        run: |
+          python3 -m compileall -q tools/*.py
+          python3 -m pip install --quiet pyflakes
+          python3 -m pyflakes tools/*.py
+
+      - name: Workflows parse
+        run: |
+          python3 - <<'PY'
+          import sys, yaml, pathlib
+          bad = 0
+          for p in sorted(pathlib.Path('.github/workflows').glob('*.yml')):
+              try:
+                  yaml.safe_load(p.read_text(encoding='utf-8'))
+                  print('ok', p)
+              except Exception as exc:
+                  print('FAIL', p, exc); bad = 1
+          sys.exit(bad)
+          PY
+
+      # The page and the workflow each carry the list of choices, because GitHub renders a
+      # workflow's inputs and a static page cannot read them. Two lists that must agree need
+      # something comparing them.
+      - name: The page offers what the build accepts
+        run: python3 tools/check-options.py .
+
+      # Including the cases that found an output-injection bug in the refusal path.
+      - name: The request parser refuses what it should
+        run: sh tools/test-read-request.sh
