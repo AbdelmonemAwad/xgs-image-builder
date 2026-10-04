@@ -4,8 +4,7 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it.
 
 **[Open the build page](https://abdelmonemawad.github.io/xgs-image-builder/)** - pick the OPNsense
-release, the image type and the console speed, and it opens the build request for you. No account,
-no token, nothing to install.
+release, the image type and the console speed, and start the build. Nothing to install.
 
 That link is this repository's own page, and a build only runs for the account that owns the
 repository it runs in. So it is the one to read; it is not the one to build from. For an image of
@@ -30,12 +29,23 @@ page is live once Pages is turned on for that repository - step 2 below.
    picks it up and starts the build.
 
    Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
-   worth a look before you fork - is at
-   <https://abdelmonemawad.github.io/xgs-image-builder/>. The page is static: it holds no
-   credentials, calls no API and loads nothing from anywhere. All it does is send you to the
-   repository's new-issue form with your choices already in the body, and GitHub's own form does
-   the authenticating - which is why no token has to live in a web page. Nothing runs until you
-   press Submit.
+   worth a look before you fork - is at <https://abdelmonemawad.github.io/xgs-image-builder/>.
+
+   The page offers two ways to start a build, and they are not the same bargain:
+
+   - **Build it here.** The page dispatches the workflow through GitHub's REST API, watches the
+     run, and hands you the download when it finishes. The API has no door that does not want a
+     token, so this one asks for yours: a
+     [fine-grained token](https://github.com/settings/personal-access-tokens/new) for that one
+     repository with **Actions: Read and write**. It is sent to `api.github.com` and nowhere else,
+     never put in a URL, and held only in the tab unless you tick the box to keep it in that
+     browser. No credential lives in the page itself.
+   - **File a request instead.** The page sends you to the repository's new-issue form with your
+     choices already in the body, and a workflow picks the issue up. This one needs no token at
+     all: GitHub's own form does the authenticating. Nothing runs until you press Submit.
+
+   The page is static either way: it loads nothing from anywhere, and every style, icon and line of
+   script is in the one file.
 
    If you would rather skip the page, the same dropdowns are the workflow's own inputs:
    **[Build image -> Run workflow](../../actions/workflows/build.yml)**. That is where GitHub

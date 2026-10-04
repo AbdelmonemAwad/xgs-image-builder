@@ -5,8 +5,9 @@ name: checks
 #
 # IT DOES NOT BUILD AN IMAGE and cannot. There is no Sophos appliance on a GitHub runner, and the
 # build needs a FreeBSD guest and a gigabyte of download. A green tick here says the scripts parse,
-# the request parser refuses what it should, and the page and the workflow offer the same choices.
-# It says nothing about whether an image boots.
+# the request parser refuses what it should, the page and the workflow offer the same choices, and
+# the page drives a mocked GitHub the way it should. It says nothing about whether an image boots,
+# and nothing about GitHub's real API.
 
 on:
   push:
@@ -62,3 +63,14 @@ jobs:
       # Including the cases that found an output-injection bug in the refusal path.
       - name: The request parser refuses what it should
         run: sh tools/test-read-request.sh
+
+      # The one step with a dependency, and the one that needs a browser. It exists because the
+      # page stopped being a form: it holds a token, calls api.github.com, turns status codes into
+      # sentences and polls for a run it has to recognise as its own. None of that shows in a diff.
+      # GitHub's API is mocked, so this spends no token and no Actions minutes - and so it proves
+      # the page's logic and nothing about GitHub's real behaviour.
+      - name: The build page does what it says
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node tools/test-build-page.mjs

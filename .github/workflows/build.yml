@@ -38,6 +38,19 @@ on:
         description: 'os-xgs-npu commit, tag or branch to install'
         type: string
         default: 'main'
+      build_id:
+        description: 'Left empty here. The build page fills it in so it can find this run again.'
+        type: string
+        default: ''
+
+# A workflow_dispatch answers 204 and hands back no run id, so a caller that wants to watch its own
+# build has nothing to match on. The page generates a build_id, sends it, and then looks for the run
+# whose name ends with it.
+#
+# It is appended plainly rather than through a conditional expression: an expression that is wrong
+# fails the run, and there is no way to try one from outside Actions. Dispatched from the Actions
+# page, build_id is empty and this is the name it has always had, with a trailing space nobody sees.
+run-name: ${{ inputs.opnsense_version }} ${{ inputs.image_type }} at ${{ inputs.console_speed }} ${{ inputs.build_id }}
 
 permissions:
   contents: read
