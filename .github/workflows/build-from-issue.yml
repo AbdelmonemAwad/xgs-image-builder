@@ -27,6 +27,11 @@ name: Build from a request
 # an image in the owner's storage. So the build is guarded, and everyone else is answered rather
 # than ignored.
 #
+# EVERY COMMENT ENDS WITH A MARKER. The build page reads these comments back to tell the reader
+# what happened to their request, and classifying them by their opening words would tie the page to
+# the wording here - change a sentence and the page stops recognising its own answer. So each one
+# carries `<!-- xgs-result: ... -->`, which Markdown does not render, and the page reads that.
+#
 # IT DOES NOT CONTAIN THE BUILD. It dispatches build.yml, which is the same workflow the Actions
 # page runs, with the same inputs. There is one build and one list of valid inputs - adding a second
 # copy here is how the two drift apart.
@@ -97,7 +102,9 @@ jobs:
             "" \
             "It is the newest run under [Build image](${RUNS}). The build page you filed this from is already watching for it and will hand you the download; the image is an artifact on that run and expires on its own." \
             "" \
-            "It has not been booted on an appliance. Burn it and boot it before relying on it.")"
+            "It has not been booted on an appliance. Burn it and boot it before relying on it." \
+            "" \
+            "<!-- xgs-result: started -->")"
 
       # A request that is a request and is wrong. Answered with the reason, because the page that
       # filed it is sitting there waiting for a run that is never going to start.
@@ -116,7 +123,9 @@ jobs:
             "${{ steps.req.outputs.why }}" \
             "\`\`\`" \
             "" \
-            "Fill the form in again at the build page and submit the issue it prepares. Nothing is building, so the page watching for it will time out.")"
+            "Fill the form in again at the build page and submit the issue it prepares. The page that filed this reads this comment, so it already knows nothing is building." \
+            "" \
+            "<!-- xgs-result: malformed -->")"
 
       # A request from anyone else: answered rather than ignored, and nothing is built. This is the
       # step the label gate used to skip, which is how a correct request from another account got
@@ -129,11 +138,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
-            "Nothing was built, and the page you filed this from will time out waiting - that is this repository refusing, not a fault." \
+            "Nothing was built. That is this repository refusing, not a fault - and the page you filed this from reads this comment, so it has already told you." \
             "" \
-            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes. To build one for yourself:" \
+            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes. Two ways to get your own, and the first is one press:" \
             "" \
-            "1. Fork this repository." \
-            "2. On your fork, open the **Actions** tab and enable workflows - GitHub disables them on a new fork until its owner says otherwise." \
-            "3. **Settings -> Pages -> branch \`main\`, folder \`/docs\`.**" \
-            "4. Open your fork's copy of the build page and press **Build it** there. It files on your fork and builds in your account - your build, your artifact, your storage, which is the licence position in CONTRIBUTING.md.")"
+            "- On the build page, open **Fork and build in my account** and give it a GitHub token. It forks this repository for you, turns workflows on for the fork, builds there and hands you the image. Nothing else to do." \
+            "- Or by hand: fork this repository; open the fork's **Actions** tab and enable workflows, which GitHub disables on every new fork; set **Settings -> Pages -> branch \`main\`, folder \`/docs\`**; then use your fork's copy of the build page." \
+            "" \
+            "Either way it is your build, your artifact, your storage - the licence position in CONTRIBUTING.md." \
+            "" \
+            "<!-- xgs-result: declined -->")"

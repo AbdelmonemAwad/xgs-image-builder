@@ -446,12 +446,16 @@
             <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4m0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
           </svg>
           <span><strong>You are reading the original repository's page.</strong> A build only runs
-          for the account that owns the repository, so a request filed from here is declined. To
-          build one for yourself:
-          <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/fork">fork the repository</a>,
-          turn on Pages for your fork (Settings, then Pages, branch <code>main</code>, folder
-          <code>/docs</code>), and use your fork's copy of this page. That is the licence position,
-          and CONTRIBUTING.md says why: your build, your artifact, your storage.</span>
+          for the account that owns the repository, so pressing <em>Build it</em> here files a
+          request that this repository answers with a refusal - which the page will show you within
+          seconds rather than leave you waiting. Two ways round it, and the first is one press:
+          open <em>Fork and build in my account</em> below and give it a token, and it forks this
+          repository for you and builds there. Or
+          <a id="fork_link" href="https://github.com/AbdelmonemAwad/xgs-image-builder/fork">fork it
+          yourself</a>, enable Actions on the fork, turn on Pages (Settings, then Pages, branch
+          <code>main</code>, folder <code>/docs</code>), and use your fork's copy of this page.
+          Either way it is your build, your artifact, your storage - the licence position, and
+          CONTRIBUTING.md says why.</span>
         </div>
 
         <section class="card">
@@ -565,17 +569,23 @@
             </details>
 
           <details class="token" id="token_block">
-            <summary>Use a token instead of the issue</summary>
+            <summary>Fork and build in my account, with a token</summary>
             <label for="token" style="margin-top:.7rem">GitHub token</label>
             <input type="password" id="token" autocomplete="off" spellcheck="false"
                    placeholder="github_pat_..." aria-describedby="token_hint">
             <label class="keep"><input type="checkbox" id="keep"> Remember it in this browser</label>
-            <p class="note quiet" id="token_hint" style="margin-top:.6rem">Only worth it for a
-            <strong>private</strong> fork, where the open route cannot read the run. A
-            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank"
-               rel="noopener">fine-grained token</a> for this repository alone, with
-            <strong>Actions: Read and write</strong>, sent to <code>api.github.com</code> and
-            nowhere else, kept in this tab unless you tick the box.</p>
+            <p class="note quiet" id="token_hint" style="margin-top:.6rem">With one, the page
+            forks this repository into your account if you have not already, turns workflows on for
+            the fork, builds there and hands you the image. No issue is filed and no tab opens -
+            that is what a token buys, and it is the only thing that can: forking, filing an issue
+            and dispatching a workflow all go through the REST API, which has no door that does not
+            want a credential.</p>
+            <p class="note quiet">It needs to cover <strong>creating a repository</strong>
+            (a fork is a new one) and <strong>Actions: Read and write</strong>. A
+            <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank"
+               rel="noopener">classic token with <code>repo</code> and <code>workflow</code></a> is
+            the one that certainly does both. It is sent to <code>api.github.com</code> and nowhere
+            else, never put in a URL, and kept in this tab unless you tick the box.</p>
           </details>
           </div>
         </section>
@@ -587,7 +597,7 @@
               <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06l2.97-2.97H2.75a.75.75 0 0 1 0-1.5h8.44L8.22 4.03a.75.75 0 0 1 0-1.06"/>
             </svg>
           </button>
-          <button type="button" class="btn btn-ghost" id="build">Build with a token instead</button>
+          <button type="button" class="btn btn-ghost" id="build">Fork and build in my account</button>
           <button type="button" class="btn btn-ghost" id="copy">Copy the request</button>
         </div>
 
@@ -609,10 +619,11 @@
         <p class="target" id="target"></p>
         <span id="copied" role="status" aria-live="polite"></span>
 
-        <p class="fine" id="fine">GitHub opens in a new tab with the request filled in. Press
-        <kbd>Submit new issue</kbd> there - that press is what authenticates you, and it is the
-        only reason this needs no token. Then come back to this tab: it waits for the build and
-        hands you the download.</p>
+        <p class="fine" id="fine"><strong>Build it</strong> opens GitHub in a new tab with the
+        request filled in. Press <kbd>Submit new issue</kbd> there - that press is what
+        authenticates you, and it is the only reason this needs no token. Then come back here: the
+        page reads the request back, shows whatever the repository answers, and follows the build
+        to the download.</p>
       </aside>
 
     </div>
@@ -672,6 +683,7 @@
   ["lnk_runs", "lnk_runs2"].forEach(function (n) { id(n).href = base + "/actions/workflows/build.yml"; });
   id("lnk_src").href = base;
   id("lnk_contrib").href = base + "/blob/main/CONTRIBUTING.md";
+  if (id("fork_link")) { id("fork_link").href = base + "/fork"; }
 
   /* The repository name comes out of the URL, so it is never written as markup - a path segment
      that happened to contain a tag would otherwise end up executing. */
@@ -784,7 +796,7 @@
       liveLog.textContent = "Open the request on GitHub";
       show(liveLog, true);
     }
-    findRun(tokenEl.value.trim() || null, buildId, startedAt, "submit");
+    watchIssue(buildId, startedAt, null);
   });
 
   /* ==================================================================
@@ -942,10 +954,106 @@
   }
   liveClear.addEventListener("click", forget);
 
-  /* --- find the run this page started ------------------------------- */
-  function findRun(token, buildId, startedAt, waitingFor) {
+  /* --- the open route: follow the issue, because the issue is where the answer is ---------
+     Waiting for a run and nothing else was wrong. A request that this repository refuses never
+     produces a run, so the page sat at fifteen minutes of silence while the actual answer - a
+     comment saying it was refused and where to fork - had been written seconds after Submit.
+     So the issue is followed first. Its comment is authoritative: it says the build started, or
+     why it did not. Only once it says started does the run watcher take over. */
+
+  function watchIssue(buildId, startedAt, issueNumber) {
     var elapsed = Date.now() - startedAt;
-    api("/repos/" + repo + "/actions/runs?event=workflow_dispatch&per_page=30", { token: token })
+
+    if (!issueNumber) {
+      api("/repos/" + repo + "/issues?state=all&per_page=10&sort=created&direction=desc", {})
+        .then(function (res) {
+          if (res.status !== 200) { return anonTrouble(res, startedAt); }
+          var list = res.data || [];
+          for (var i = 0; i < list.length; i++) {
+            if ((list[i].body || "").indexOf(buildId) >= 0) {
+              /* Filed. From here the comment on it is what we are waiting for. */
+              liveLog.href = list[i].html_url;
+              liveLog.textContent = "Open the request on GitHub";
+              show(liveLog, true);
+              watchIssue(buildId, startedAt, list[i].number);
+              return;
+            }
+          }
+          if (elapsed > 900000) {
+            say("failed", "No request arrived",
+                "Nothing carrying this build\u2019s id turned up in fifteen minutes. If you did "
+                + "press Submit, open the issue - the comment on it says what happened.", "");
+            show(liveLog, true); show(liveClear, true);
+            return;
+          }
+          say("working", "Waiting for you",
+              "Press \u201cSubmit new issue\u201d in the GitHub tab. Nothing is built until you "
+              + "do - this page keeps watching.", "", startedAt);
+          watching = setTimeout(function () { watchIssue(buildId, startedAt, null); },
+                                elapsed < 60000 ? 6000 : 20000);
+        }, function () { return anonUnreachable(startedAt); });
+      return;
+    }
+
+    api("/repos/" + repo + "/issues/" + issueNumber + "/comments?per_page=5", {})
+      .then(function (res) {
+        if (res.status !== 200) { return anonTrouble(res, startedAt); }
+        var said = (res.data && res.data.length) ? (res.data[0].body || "") : "";
+        if (said) {
+          /* The workflow ends every comment with a marker Markdown does not render, so this does
+             not have to recognise the answer by its prose - a reworded sentence there would
+             otherwise stop the page understanding its own reply. The prose is still read out to
+             the reader; only the classification uses the marker. */
+          var mark = said.match(/<!--\s*xgs-result:\s*([a-z]+)\s*-->/);
+          var kind = mark ? mark[1]
+                   : (said.indexOf("Build started") === 0 ? "started"
+                   : (said.indexOf("Nothing was built") === 0 ? "declined" : "malformed"));
+          if (kind === "started") {
+            say("working", "Queued", "The request was accepted. Waiting for the run.", "", startedAt);
+            findRun(null, buildId, startedAt, "run");
+            return;
+          }
+          /* Refused, or malformed. Either way nothing will ever run, and the reason is here. */
+          say("failed",
+              kind === "declined" ? "This repository refused it" : "The request was not started",
+              "", said.replace(/<!--[\s\S]*?-->/g, "").replace(/\s*\n\s*\n\s*/g, "  ").trim());
+          show(liveLog, true); show(liveClear, true);
+          return;
+        }
+        if (elapsed > 900000) {
+          say("failed", "No answer", "The request was filed but nothing answered it in fifteen "
+              + "minutes. Open it on GitHub.", "");
+          show(liveLog, true); show(liveClear, true);
+          return;
+        }
+        say("working", "Filed", "The request is in. Waiting for this repository to answer it.",
+            "", startedAt);
+        watching = setTimeout(function () { watchIssue(buildId, startedAt, issueNumber); },
+                              elapsed < 120000 ? 6000 : 20000);
+      }, function () { return anonUnreachable(startedAt); });
+  }
+
+  function anonTrouble(res, startedAt) {
+    if (res.status === 403) {
+      say("working", "GitHub stopped answering",
+          "The hourly allowance for requests without a token is used up on this address. Nothing "
+          + "here is broken - open the request on GitHub to see where it got to.", "", startedAt);
+    } else {
+      say("failed", "Could not read it back", "", explain(res, "read this repository"));
+    }
+    show(liveLog, true); show(liveClear, true);
+  }
+
+  function anonUnreachable(startedAt) {
+    say("failed", "Could not reach GitHub", "The request to api.github.com did not complete.", "");
+    show(liveClear, true);
+  }
+
+  /* --- find the run this page started ------------------------------- */
+  function findRun(token, buildId, startedAt, waitingFor, target) {
+    target = target || repo;
+    var elapsed = Date.now() - startedAt;
+    api("/repos/" + target + "/actions/runs?event=workflow_dispatch&per_page=30", { token: token })
       .then(function (res) {
         if (res.status !== 200) {
           if (res.status === 403 && !token) {
@@ -968,7 +1076,7 @@
           var n = (runs[i].name || "") + " " + (runs[i].display_title || "");
           if (n.indexOf(buildId) >= 0) { mine = runs[i]; break; }
         }
-        if (mine) { watchRun(token, mine.id, startedAt); return; }
+        if (mine) { watchRun(token, mine.id, startedAt, target); return; }
 
         /* A dispatch starts in seconds. An issue has to be submitted by a person first, so the
            page says what it is waiting for and gives them a quarter of an hour to do it. */
@@ -981,7 +1089,7 @@
                   + "Submit, the comment on the issue says what happened to it."
                 : "GitHub accepted the request but no run carrying this build's id showed up.",
               "");
-          liveLog.href = "https://github.com/" + repo + "/actions/workflows/build.yml";
+          liveLog.href = "https://github.com/" + target + "/actions/workflows/build.yml";
           show(liveLog, true); show(liveClear, true);
           return;
         }
@@ -993,7 +1101,7 @@
         } else {
           say("working", "Queued", "Waiting for GitHub to start the run.", "", startedAt);
         }
-        watching = setTimeout(function () { findRun(token, buildId, startedAt, waitingFor); },
+        watching = setTimeout(function () { findRun(token, buildId, startedAt, waitingFor, target); },
                               gap(token, elapsed));
       }, function () {
         say("failed", "Could not reach GitHub",
@@ -1003,12 +1111,13 @@
   }
 
   /* --- watch it, then hand over the artifact ------------------------ */
-  function watchRun(token, runId, startedAt) {
-    store(LS_RUN, JSON.stringify({ repo: repo, id: runId, at: startedAt }));
-    liveLog.href = "https://github.com/" + repo + "/actions/runs/" + runId;
+  function watchRun(token, runId, startedAt, target) {
+    target = target || repo;
+    store(LS_RUN, JSON.stringify({ repo: target, id: runId, at: startedAt }));
+    liveLog.href = "https://github.com/" + target + "/actions/runs/" + runId;
     show(liveLog, true);
 
-    api("/repos/" + repo + "/actions/runs/" + runId, { token: token }).then(function (res) {
+    api("/repos/" + target + "/actions/runs/" + runId, { token: token }).then(function (res) {
       if (res.status !== 200) {
         say("failed", "Lost track of the run", "", explain(res, "read Actions"));
         show(liveClear, true);
@@ -1019,7 +1128,7 @@
         say("working", run.status === "in_progress" ? "Building" : "Queued",
             "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
             + "recompressed.", "", startedAt);
-        watching = setTimeout(function () { watchRun(token, runId, startedAt); },
+        watching = setTimeout(function () { watchRun(token, runId, startedAt, target); },
                               gap(token, Date.now() - startedAt));
         return;
       }
@@ -1029,15 +1138,16 @@
         show(liveClear, true);
         return;
       }
-      artifact(token, runId, startedAt);
+      artifact(token, runId, startedAt, target);
     }, function () {
       say("working", "Waiting", "Could not reach GitHub just now - trying again.", "", startedAt);
-      watching = setTimeout(function () { watchRun(token, runId, startedAt); }, 20000);
+      watching = setTimeout(function () { watchRun(token, runId, startedAt, target); }, 20000);
     });
   }
 
-  function artifact(token, runId, startedAt) {
-    api("/repos/" + repo + "/actions/runs/" + runId + "/artifacts", { token: token })
+  function artifact(token, runId, startedAt, target) {
+    target = target || repo;
+    api("/repos/" + target + "/actions/runs/" + runId + "/artifacts", { token: token })
       .then(function (res) {
         var list = (res.data && res.data.artifacts) || [];
         if (res.status !== 200 || !list.length) {
@@ -1054,7 +1164,7 @@
             + ". It expires in seven days. It has not been booted on an appliance.");
         /* The signed download URL the API returns cannot be followed from a page, so this is the
            link GitHub's own UI uses: it works in a browser that is signed in to GitHub. */
-        liveDl.href = "https://github.com/" + repo + "/actions/runs/" + runId
+        liveDl.href = "https://github.com/" + target + "/actions/runs/" + runId
                     + "/artifacts/" + a.id;
         show(liveDl, true); show(liveClear, true);
       }, function () {
@@ -1077,6 +1187,84 @@
   });
   tokenChanged();
 
+  /* With a token the whole thing can happen in the reader's own account, which is what the licence
+     position wanted all along: their build, their artifact, their storage. So the button forks the
+     repository if they do not have it yet, turns workflows on for the fork, dispatches there and
+     watches there. No issue is filed and no tab is opened - that is what the token buys, and it is
+     the only thing that can buy it: creating a fork, creating an issue and dispatching a workflow
+     all go through the REST API, and the API has no door that does not want a credential.
+
+     Each step says what it is doing, because a fork takes a few seconds to come into existence and
+     a page that sits silent through it looks broken. */
+
+  function fork(token, source, then) {
+    var name = source.split("/")[1];
+    api("/user", { token: token }).then(function (me) {
+      if (me.status !== 200 || !me.data || !me.data.login) {
+        say("failed", "GitHub would not say who you are", "", explain(me, "read your account"));
+        show(liveClear, true);
+        return;
+      }
+      var login = me.data.login;
+      if (login.toLowerCase() === source.split("/")[0].toLowerCase()) {
+        then(source);            /* it is already theirs; nothing to fork */
+        return;
+      }
+      var mine = login + "/" + name;
+
+      api("/repos/" + mine, { token: token }).then(function (got) {
+        if (got.status === 200) { enableActions(token, mine, then); return; }
+        if (got.status !== 404) {
+          say("failed", "Could not look for your fork", "", explain(got, "read your repositories"));
+          show(liveClear, true);
+          return;
+        }
+        say("working", "Making your fork", "Copying " + source + " into " + login + ".");
+        api("/repos/" + source + "/forks", { token: token, method: "POST", body: {} })
+          .then(function (res) {
+            if (res.status !== 202 && res.status !== 200 && res.status !== 201) {
+              say("failed", "GitHub would not fork it", "",
+                  explain(res, "create a repository for you")
+                  + " Forking makes a new repository, so a fine-grained token has to cover that,"
+                  + " not only this one repository.");
+              show(liveClear, true);
+              return;
+            }
+            waitForFork(token, mine, Date.now(), then);
+          }, function () {
+            say("failed", "Could not reach GitHub", "The fork request did not complete.", "");
+            show(liveClear, true);
+          });
+      });
+    });
+  }
+
+  /* A fork is created asynchronously: the POST comes back before the repository is there. */
+  function waitForFork(token, mine, since_, then) {
+    api("/repos/" + mine, { token: token }).then(function (got) {
+      if (got.status === 200) { enableActions(token, mine, then); return; }
+      if (Date.now() - since_ > 120000) {
+        say("failed", "The fork did not appear",
+            "GitHub accepted the request but " + mine + " was not there two minutes later.", "");
+        show(liveClear, true);
+        return;
+      }
+      watching = setTimeout(function () { waitForFork(token, mine, since_, then); }, 4000);
+    }, function () {
+      watching = setTimeout(function () { waitForFork(token, mine, since_, then); }, 6000);
+    });
+  }
+
+  /* GitHub disables workflows on a new fork until its owner says otherwise. Turning them on needs
+     more than Actions: write, so this is allowed to fail - the dispatch that follows will say so
+     plainly, which is better than refusing to try. */
+  function enableActions(token, mine, then) {
+    say("working", "Turning workflows on", "GitHub disables them on a new fork.");
+    api("/repos/" + mine + "/actions/permissions",
+        { token: token, method: "PUT", body: { enabled: true, allowed_actions: "all" } })
+      .then(function () { then(mine); }, function () { then(mine); });
+  }
+
   buildBtn.addEventListener("click", function () {
     var req = values();
     if (!req.project_ref) { el.project_ref.focus(); return; }
@@ -1095,23 +1283,31 @@
 
     stopWatching();
     liveLog.textContent = LOG_LABEL;
-    say("working", "Starting", "Asking GitHub to run the workflow.", "", startedAt);
+    say("working", "Starting", "Asking GitHub who you are.", "", startedAt);
 
-    api("/repos/" + repo + "/actions/workflows/build.yml/dispatches",
-        { token: token, method: "POST", body: { ref: "main", inputs: req } })
-      .then(function (res) {
-        if (res.status !== 204) {
-          say("failed", "GitHub would not start it", "", explain(res, "dispatch a workflow"));
-          show(liveClear, true);
-          return;
-        }
-        findRun(token, buildId, startedAt, "run");
-      }, function () {
-        say("failed", "Could not reach GitHub",
-            "The request to api.github.com did not complete. A browser extension or a network "
-            + "that blocks it would do this.", "");
-        show(liveClear, true);
+    fork(token, repo, function (target) {
+      say("working", "Starting the build", "In " + target + ".", "", startedAt);
+      liveLog.href = "https://github.com/" + target + "/actions/workflows/build.yml";
+
+      api("/repos/" + target, { token: token }).then(function (info) {
+        var ref = (info.data && info.data.default_branch) || "main";
+        api("/repos/" + target + "/actions/workflows/build.yml/dispatches",
+            { token: token, method: "POST", body: { ref: ref, inputs: req } })
+          .then(function (res) {
+            if (res.status !== 204) {
+              say("failed", "GitHub would not start it", "", explain(res, "dispatch a workflow"));
+              show(liveLog, true); show(liveClear, true);
+              return;
+            }
+            findRun(token, buildId, startedAt, "run", target);
+          }, function () {
+            say("failed", "Could not reach GitHub",
+                "The request to api.github.com did not complete. A browser extension or a network "
+                + "that blocks it would do this.", "");
+            show(liveClear, true);
+          });
       });
+    });
   });
 
   /* A build outlives the tab it was started in, so pick it up again on load. */
