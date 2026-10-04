@@ -1,0 +1,174 @@
+name: Build image
+
+# Build a bootable OPNsense image for a Sophos XGS appliance, from the dropdowns below.
+#
+# THE RESULT IS AN ARTIFACT, NOT A RELEASE, and it expires. Nothing in this repository holds any
+# part of an OPNsense image: the build fetches the official one from OPNsense's own mirror, verifies
+# it, and adds this project's files to it. See CONTRIBUTING.md - that shape is also the licence
+# position, and running a workflow needs write access, so anyone else forks this and runs it in
+# their own account.
+#
+# NOTHING BUILT HERE HAS BEEN BOOTED ON AN APPLIANCE. A GitHub runner has no Sophos hardware
+# attached to it. Burn an image and boot it before relying on it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      opnsense_version:
+        description: 'OPNsense release'
+        type: choice
+        default: '26.7'
+        options: [ '26.7', '26.1' ]
+      image_type:
+        description: 'Image type - serial for an appliance with no screen (dvd is refused, see README)'
+        type: choice
+        default: 'serial'
+        options: [ 'serial', 'nano', 'vga', 'dvd' ]
+      console_speed:
+        description: 'Serial console baud - Sophos firmware uses 38400, OPNsense defaults to 115200'
+        type: choice
+        default: '115200'
+        options: [ '115200', '38400' ]
+      serial_console:
+        description: 'Put the console on the serial port only'
+        type: choice
+        default: 'yes'
+        options: [ 'yes', 'no' ]
+      project_ref:
+        description: 'os-xgs-npu commit, tag or branch to install'
+        type: string
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ inputs.opnsense_version }} ${{ inputs.image_type }} at ${{ inputs.console_speed }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # An installer ISO is read-only cd9660. Repacking one bootable is separate work, and whether
+      # files injected into an installer reach the INSTALLED system is unverified - so an ISO that
+      # boots and silently carries none of this would look like success. Refuse early and say so.
+      - name: Refuse dvd
+        if: inputs.image_type == 'dvd'
+        run: |
+          echo "image_type=dvd is not implemented." >&2
+          echo "" >&2
+          echo "The installer ISO is read-only cd9660, repacking it bootable is a separate piece" >&2
+          echo "of work, and whether files injected into an installer image reach the installed" >&2
+          echo "system has not been verified. An image that boots and carries none of the driver" >&2
+          echo "would look like it worked, which is the worst outcome available." >&2
+          echo "" >&2
+          echo "Use serial, nano or vga. For an appliance with no screen, serial." >&2
+          exit 1
+
+      # Fail in seconds on a combination the release does not publish, rather than in the guest
+      # forty minutes later. This reads the release's own checksum file and selects from it.
+      - name: Resolve the upstream image
+        id: release
+        run: |
+          sh scripts/resolve-release.sh \
+            '${{ inputs.opnsense_version }}' '${{ inputs.image_type }}' > /tmp/resolved
+          {
+            echo "url=$(sed -n 1p /tmp/resolved)"
+            echo "file=$(sed -n 2p /tmp/resolved)"
+            echo "sha256=$(sed -n 3p /tmp/resolved)"
+          } >> "$GITHUB_OUTPUT"
+          cat /tmp/resolved
+
+      # No copy of the project lives here; a vendored copy goes stale and nobody notices.
+      - name: Fetch os-xgs-npu
+        id: project
+        run: |
+          stamp=$(sh scripts/fetch-project.sh '${{ inputs.project_ref }}' project)
+          echo "stamp=${stamp}" >> "$GITHUB_OUTPUT"
+          echo "installing os-xgs-npu ${stamp}"
+
+      # Everything that touches the filesystem happens in here, because an OPNsense image is UFS
+      # and Linux's UFS write support is not something to put a firewall's boot device behind.
+      #
+      # sync: sshfs shares the workspace instead of copying it in and out, which matters because
+      # the decompressed image is over a gigabyte. The download and the recompression happen in
+      # the guest too, so the large files never cross the boundary.
+      - name: Inject, in a FreeBSD guest
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: '14.2'
+          usesh: true
+          sync: sshfs
+          copyback: true
+          run: |
+            set -eu
+            cd "${GITHUB_WORKSPACE}"
+
+            echo "=== download"
+            fetch -o '${{ steps.release.outputs.file }}' '${{ steps.release.outputs.url }}'
+
+            echo "=== verify"
+            # A firewall's boot device is on the other end of this.
+            got=$(sha256 -q '${{ steps.release.outputs.file }}')
+            want='${{ steps.release.outputs.sha256 }}'
+            if [ "${got}" != "${want}" ]; then
+              echo "checksum mismatch for ${{ steps.release.outputs.file }}" >&2
+              echo "  expected ${want}" >&2
+              echo "  got      ${got}" >&2
+              exit 1
+            fi
+            echo "sha256 ok"
+
+            echo "=== decompress"
+            bunzip2 -f '${{ steps.release.outputs.file }}'
+            img=$(basename '${{ steps.release.outputs.file }}' .bz2)
+            ls -lh "${img}"
+
+            echo "=== inject"
+            sh scripts/inject.sh \
+              "${img}" \
+              '${{ inputs.console_speed }}' \
+              '${{ inputs.serial_console }}' \
+              "${GITHUB_WORKSPACE}/project" \
+              '${{ steps.project.outputs.stamp }}'
+
+            echo "=== repack"
+            out="xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img"
+            mv "${img}" "${out}"
+            xz -T0 -6 "${out}"
+            ls -lh "${out}.xz"
+
+      - name: Say what this is and what it is not
+        if: always()
+        run: |
+          {
+            echo '### Image'
+            echo
+            echo '| | |'
+            echo '|---|---|'
+            echo '| OPNsense | `${{ inputs.opnsense_version }}` `${{ inputs.image_type }}` |'
+            echo '| console | `${{ inputs.console_speed }}` baud, serial only: `${{ inputs.serial_console }}` |'
+            echo '| os-xgs-npu | `${{ steps.project.outputs.stamp }}` |'
+            echo '| upstream file | `${{ steps.release.outputs.file }}` |'
+            echo '| checksum | verified against the list the release publishes |'
+            echo
+            echo '> **This image has not been booted on an appliance.** A GitHub runner has no'
+            echo '> Sophos hardware attached to it. Burn it and boot it before relying on it.'
+            echo
+            echo 'It carries the driver **sources** and the kernel sources for its own kernel, and'
+            echo 'builds the module on the appliance at first boot. It carries no prebuilt module:'
+            echo 'one built against a different kernel loads without complaining and then reads'
+            echo 'structures at the wrong offsets.'
+            echo
+            echo 'Every family is installed. The selection happens at first boot, by guards that'
+            echo 'already exist in the project. See `docs/board-maps.md`.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}
+          path: '*.img.xz'
+          retention-days: 7
+          if-no-files-found: error

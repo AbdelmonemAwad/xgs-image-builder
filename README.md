@@ -12,9 +12,15 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
 
 1. **Fork this repository.** You have to - running a workflow needs write access to the repository
    it runs in.
-2. Open **Actions**, pick the build workflow, press **Run workflow**, and choose from the
-   dropdowns: the OPNsense version, the image type, the console speed, and which commit of the
-   driver project to install.
+2. Go to **[Build image -> Run workflow](../../actions/workflows/build.yml)** and choose from the
+   dropdowns: the OPNsense version, the image type, the console speed, whether the console is
+   serial-only, and which commit of the driver project to install.
+
+   That link is relative on purpose, so from your fork it opens **your** fork's workflow rather
+   than sending you back here. The dropdowns are the workflow's own `workflow_dispatch` inputs;
+   GitHub renders them on that page and there is nowhere else they can appear. A README cannot
+   hold them - GitHub strips `<form>`, `<select>` and `<input>` out of Markdown - so this link is
+   the whole of "dropdowns on the repository page".
 3. When it finishes, download the artifact and write it to a USB stick.
 
 The artifact expires on its own. Nothing is kept.
