@@ -51,8 +51,16 @@ def workflow_options(path):
 
 
 def page_options(path):
-    """Every <select>'s option values, by the select's id."""
+    """Every dropdown's option values, by its id.
+
+    Comments are stripped first. A comment that merely mentions a tag by name is not markup, but
+    the scan below cannot tell the difference: a `<select>` written in prose opens a block that
+    runs to the first real closing tag and swallows the dropdown in between. That happened, and
+    the report was the confusing kind - the page was said to be missing a dropdown that was
+    plainly there.
+    """
     text = open(path, encoding='utf-8').read()
+    text = re.sub(r'<!--.*?-->', '', text, flags=re.S)
     out = {}
     for block in re.finditer(r'<select\b([^>]*)>(.*?)</select>', text, re.S | re.I):
         attrs, inner = block.group(1), block.group(2)
