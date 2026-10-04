@@ -18,8 +18,11 @@ or matched against a narrow pattern. The workflow reads the body through the env
 than interpolating it into a script, and reads this script's output rather than the body.
 
 Reads ISSUE_BODY from the environment. Writes GITHUB_OUTPUT lines on stdout. Always exits 0: the
-workflow decides what to do from `ok`, so that a refusal is a comment on the issue rather than a
-failed run with nothing said.
+workflow decides what to do from `request` and `ok`, so that a refusal is a comment on the issue
+rather than a failed run with nothing said.
+
+`request` is false only when the body has no JSON block at all, which means an ordinary issue that
+this has no business answering. Everything else is a request, right or wrong, and gets an answer.
 """
 import json
 import os
@@ -89,8 +92,15 @@ def emit(pairs):
         print('%s=%s' % (key, flat))
 
 
-def refuse(why):
-    emit([('ok', 'false'), ('why', why)])
+def refuse(why, request=True):
+    """Refuse, and say whether this was a build request at all.
+
+    The two are different and the workflow needs both. A body with no JSON block in it is an
+    ordinary issue - a bug report, a question - and must be answered with silence. A body that
+    carries a request and gets it wrong must be answered with the reason, or the person who filed
+    it is left watching a page that will never finish.
+    """
+    emit([('request', 'true' if request else 'false'), ('ok', 'false'), ('why', why)])
     return 0
 
 
@@ -103,7 +113,8 @@ def main():
 
     m = FENCE.search(body) or BARE.search(body)
     if not m:
-        return refuse('No JSON block in the issue body. This issue was not filed from the build page.')
+        return refuse('No JSON block in the issue body. This issue was not filed from the build page.',
+                      request=False)
     try:
         req = json.loads(m.group(1))
     except ValueError as exc:
@@ -143,7 +154,7 @@ def main():
     if extra:
         return refuse('Unexpected field(s): %s' % ', '.join(extra))
 
-    emit(out + [('ok', 'true')])
+    emit([('request', 'true')] + out + [('ok', 'true')])
     return 0
 
 

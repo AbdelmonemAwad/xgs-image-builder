@@ -81,13 +81,34 @@ ok 'build_id: too long'        0 "{${GOOD},\"build_id\":\"aaaaaaaaaaaaaaaaaaaaaa
 ok 'build_id: not a string'    0 "{${GOOD},\"build_id\":7}"
 ok 'build_id: newline'         0 "{${GOOD},\"build_id\":\"a\nok=true\"}"
 
+# `request` tells an ordinary issue from a request that is wrong. The workflow answers the second
+# and must stay silent on the first - that distinction is what keeps this off every bug report, and
+# what makes a stranger's malformed request get a reply instead of nothing.
+want_request() {
+    name=$1; want=$2; body=$3
+    got=$(ISSUE_BODY="${body}" python3 "${SCRIPT}" | sed -n 's/^request=//p')
+    if [ "${got}" = "${want}" ]; then
+        pass=$((pass + 1))
+    else
+        fail=$((fail + 1))
+        printf 'FAIL  %-26s wanted request=%s, got %s\n' "${name}" "${want}" "${got:-(nothing)}"
+    fi
+}
+want_request 'request: prose only'      false 'The appliance will not boot after the update.'
+want_request 'request: empty body'      false ''
+want_request 'request: a good one'      true  "{${GOOD}}"
+want_request 'request: bad value'       true  '{"opnsense_version":"9.9","image_type":"serial","console_speed":"38400","serial_console":"yes","project_ref":"main"}'
+want_request 'request: missing field'   true  '{"image_type":"serial"}'
+want_request 'request: broken json'     true  '{"opnsense_version": }'
+want_request 'request: bad build_id'    true  "{${GOOD},\"build_id\":\"a b\"}"
+
 # And nothing a refusal prints may become a second output line.
 lines=$(ISSUE_BODY="{${GOOD},\"x\\nok=true\\nz\":\"1\"}" python3 "${SCRIPT}" | wc -l | tr -d ' ')
-if [ "${lines}" = 2 ]; then
+if [ "${lines}" = 3 ]; then
     pass=$((pass + 1))
 else
     fail=$((fail + 1))
-    printf 'FAIL  %-26s a refusal must print exactly 2 lines, printed %s\n' 'refusal line count' "${lines}"
+    printf 'FAIL  %-26s a refusal must print exactly 3 lines, printed %s\n' 'refusal line count' "${lines}"
 fi
 
 printf '%d passed, %d failed\n' "${pass}" "${fail}"
