@@ -27,4 +27,11 @@ if ! git clone --quiet --depth 1 --branch "${REF}" "${PROJECT_URL}" "${DEST}" 2>
     git -C "${DEST}" checkout -q FETCH_HEAD
 fi
 
-git -C "${DEST}" --no-pager log -1 --format='%H %cI %s'
+# One printable line, and bounded. The caller writes this to GITHUB_OUTPUT, which is line-based
+# and where a later assignment wins - the same shape of fault this repository already fixed once in
+# tools/read-request.py, found there by testing the refusal path rather than the accepting one. A
+# commit subject is one line by git's definition, but "by definition" is not the same as checked.
+git -C "${DEST}" --no-pager log -1 --format='%H %cI %s' \
+    | tr '\n\r' '  ' \
+    | tr -d '\000-\010\013-\037\177' \
+    | cut -c1-200

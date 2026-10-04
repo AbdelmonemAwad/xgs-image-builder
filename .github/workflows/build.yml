@@ -82,122 +82,145 @@ jobs:
 
       # Fail in seconds on a combination the release does not publish, rather than in the guest
       # forty minutes later. This reads the release's own checksum file and selects from it.
+      # Fail in seconds on a combination the release does not publish, rather than in the guest
+      # forty minutes later with a 404.
+      #
+      # NOTHING BELOW PASTES A VALUE INTO A SCRIPT. GitHub substitutes `${{ ... }}` into the text of
+      # a run block before any shell sees it, so whatever the value contains becomes code. That is
+      # not a theory here: the first build that ever ran died on a commit subject containing an
+      # apostrophe, and so did the step meant to explain the death. Values arrive through `env:` and
+      # are read as $NAME; tools/check-no-interpolation.py fails the build if one creeps back in.
       - name: Resolve the upstream image
         id: release
+        env:
+          OPN_VERSION: ${{ inputs.opnsense_version }}
+          IMAGE_TYPE: ${{ inputs.image_type }}
         run: |
-          sh scripts/resolve-release.sh \
-            '${{ inputs.opnsense_version }}' '${{ inputs.image_type }}' > /tmp/resolved
+          set -eu
+          sh scripts/resolve-release.sh "$OPN_VERSION" "$IMAGE_TYPE" > /tmp/release
           {
-            echo "url=$(sed -n 1p /tmp/resolved)"
-            echo "file=$(sed -n 2p /tmp/resolved)"
-            echo "sha256=$(sed -n 3p /tmp/resolved)"
+            echo "url=$(sed -n 1p /tmp/release)"
+            echo "file=$(sed -n 2p /tmp/release)"
+            echo "sha256=$(sed -n 3p /tmp/release)"
           } >> "$GITHUB_OUTPUT"
-          cat /tmp/resolved
+          cat /tmp/release
 
-      # No copy of the project lives here; a vendored copy goes stale and nobody notices.
       - name: Fetch os-xgs-npu
         id: project
+        env:
+          PROJECT_REF: ${{ inputs.project_ref }}
         run: |
-          stamp=$(sh scripts/fetch-project.sh '${{ inputs.project_ref }}' project)
+          set -eu
+          stamp=$(sh scripts/fetch-project.sh "$PROJECT_REF" project)
           echo "stamp=${stamp}" >> "$GITHUB_OUTPUT"
           echo "installing os-xgs-npu ${stamp}"
 
-      # Everything that touches the filesystem happens in here, because an OPNsense image is UFS
-      # and Linux's UFS write support is not something to put a firewall's boot device behind.
-      #
-      # sync: sshfs shares the workspace instead of copying it in and out, which matters because
-      # the decompressed image is over a gigabyte. The download and the recompression happen in
-      # the guest too, so the large files never cross the boundary.
-      # The first build that ever ran failed inside the guest and its log could not be read from
-      # outside GitHub, which left nothing to work from but the step name. A forty-minute pipeline
-      # that moves gigabytes has to say where it is and what it has left, at every stage, so that
-      # the next failure is read rather than guessed at.
+      # A forty-minute pipeline that moves gigabytes inside a guest, whose log is its only witness,
+      # has to say where it is and what it has left.
       - name: Space before the guest starts
         run: |
           df -h /
           echo "workspace: $(du -sh "${GITHUB_WORKSPACE}" 2>/dev/null | cut -f1)"
 
+      # Everything that touches the filesystem happens in here, because an OPNsense image is UFS
+      # and Linux's UFS write support is not something to put a firewall's boot device behind.
+      #
+      # sync: sshfs shares the workspace instead of copying it in and out, which matters because
+      # the decompressed image is over two gigabytes. The download and the recompression happen in
+      # the guest too, so the large files never cross the boundary.
+      #
+      # `envs:` is what carries the names across the ssh connection into the guest. If one of them
+      # failed to arrive, `set -u` stops the script on the first use and says which - a loud
+      # failure rather than a build made from an empty value.
       - name: Inject, in a FreeBSD guest
         uses: vmactions/freebsd-vm@v1
+        env:
+          OPN_URL: ${{ steps.release.outputs.url }}
+          OPN_FILE: ${{ steps.release.outputs.file }}
+          OPN_SHA: ${{ steps.release.outputs.sha256 }}
+          CONSOLE_SPEED: ${{ inputs.console_speed }}
+          SERIAL_CONSOLE: ${{ inputs.serial_console }}
+          PROJ_STAMP: ${{ steps.project.outputs.stamp }}
+          OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img
         with:
           release: '14.2'
-          usesh: true
           sync: sshfs
           copyback: true
+          envs: 'OPN_URL OPN_FILE OPN_SHA CONSOLE_SPEED SERIAL_CONSOLE PROJ_STAMP OUT_NAME'
           run: |
             set -eu
             cd "${GITHUB_WORKSPACE}"
 
-            # Each stage says where it is and what is left, because the whole of this runs inside
-            # a guest whose log is the only witness.
             stage() { echo; echo "=== $1"; df -h . 2>/dev/null || true; }
 
             stage download
-            fetch -o '${{ steps.release.outputs.file }}' '${{ steps.release.outputs.url }}'
-            ls -lh '${{ steps.release.outputs.file }}'
+            fetch -o "${OPN_FILE}" "${OPN_URL}"
+            ls -lh "${OPN_FILE}"
 
             stage verify
             # A firewall's boot device is on the other end of this.
-            got=$(sha256 -q '${{ steps.release.outputs.file }}')
-            want='${{ steps.release.outputs.sha256 }}'
-            if [ "${got}" != "${want}" ]; then
-              echo "checksum mismatch for ${{ steps.release.outputs.file }}" >&2
-              echo "  expected ${want}" >&2
+            got=$(sha256 -q "${OPN_FILE}")
+            if [ "${got}" != "${OPN_SHA}" ]; then
+              echo "checksum mismatch for ${OPN_FILE}" >&2
+              echo "  expected ${OPN_SHA}" >&2
               echo "  got      ${got}" >&2
               exit 1
             fi
             echo "sha256 ok"
 
             stage decompress
-            bunzip2 -f '${{ steps.release.outputs.file }}'
-            img=$(basename '${{ steps.release.outputs.file }}' .bz2)
+            bunzip2 -f "${OPN_FILE}"
+            img=${OPN_FILE%.bz2}
             ls -lh "${img}"
 
             stage inject
             sh scripts/inject.sh \
               "${img}" \
-              '${{ inputs.console_speed }}' \
-              '${{ inputs.serial_console }}' \
+              "${CONSOLE_SPEED}" \
+              "${SERIAL_CONSOLE}" \
               "${GITHUB_WORKSPACE}/project" \
-              '${{ steps.project.outputs.stamp }}'
+              "${PROJ_STAMP}"
 
             stage repack
-            out="xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img"
-            mv "${img}" "${out}"
+            mv "${img}" "${OUT_NAME}"
             # xz writes the compressed file beside the original and removes it only at the end, so
             # the high-water mark here is both of them at once.
-            xz -T0 -6 "${out}"
-            stage done
-            ls -lh "${out}.xz"
+            xz -T0 -6 "${OUT_NAME}"
 
-      # Reports whatever is known, including after a failure - so it must not be able to fail
-      # itself and turn one red step into two.
+            stage done
+            ls -lh "${OUT_NAME}.xz"
+
+      # Reports whatever is known, including after a failure - so it must not be able to fail itself
+      # and turn one red step into two. Which is exactly what it did: it carried the same commit
+      # subject, in the same single quotes, and died of the same apostrophe.
       - name: Say what this is and what it is not
         if: always()
         continue-on-error: true
+        env:
+          OPN_VERSION: ${{ inputs.opnsense_version }}
+          IMAGE_TYPE: ${{ inputs.image_type }}
+          CONSOLE_SPEED: ${{ inputs.console_speed }}
+          SERIAL_CONSOLE: ${{ inputs.serial_console }}
+          OPN_FILE: ${{ steps.release.outputs.file }}
+          PROJ_STAMP: ${{ steps.project.outputs.stamp }}
         run: |
           df -h / || true
           {
-            echo '### Image'
-            echo
-            echo '| | |'
-            echo '|---|---|'
-            echo '| OPNsense | `${{ inputs.opnsense_version }}` `${{ inputs.image_type }}` |'
-            echo '| console | `${{ inputs.console_speed }}` baud, serial only: `${{ inputs.serial_console }}` |'
-            echo '| os-xgs-npu | `${{ steps.project.outputs.stamp }}` |'
-            echo '| upstream file | `${{ steps.release.outputs.file }}` |'
-            echo '| checksum | verified against the list the release publishes |'
-            echo
-            echo '> **This image has not been booted on an appliance.** A GitHub runner has no'
-            echo '> Sophos hardware attached to it. Burn it and boot it before relying on it.'
-            echo
-            echo 'It carries the driver **sources** and the kernel sources for its own kernel, and'
-            echo 'builds the module on the appliance at first boot. It carries no prebuilt module:'
-            echo 'one built against a different kernel loads without complaining and then reads'
-            echo 'structures at the wrong offsets.'
-            echo
-            echo 'Every family is installed. The selection happens at first boot, by guards that'
-            echo 'already exist in the project. See `docs/board-maps.md`.'
+            printf '### Image\n\n'
+            printf '| | |\n|---|---|\n'
+            printf '| OPNsense | `%s` `%s` |\n' "$OPN_VERSION" "$IMAGE_TYPE"
+            printf '| console | `%s` baud, serial only: `%s` |\n' "$CONSOLE_SPEED" "$SERIAL_CONSOLE"
+            printf '| os-xgs-npu | `%s` |\n' "$PROJ_STAMP"
+            printf '| upstream file | `%s` |\n' "$OPN_FILE"
+            printf '| checksum | verified against the list the release publishes |\n\n'
+            printf '> **This image has not been booted on an appliance.** A GitHub runner has no\n'
+            printf '> Sophos hardware attached to it. Burn it and boot it before relying on it.\n\n'
+            printf 'It carries the driver **sources** and the kernel sources for its own kernel, and\n'
+            printf 'builds the module on the appliance at first boot. It carries no prebuilt module:\n'
+            printf 'one built against a different kernel loads without complaining and then reads\n'
+            printf 'structures at the wrong offsets.\n\n'
+            printf 'Every family is installed. The selection happens at first boot, by guards that\n'
+            printf 'already exist in the project. See `docs/board-maps.md`.\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
