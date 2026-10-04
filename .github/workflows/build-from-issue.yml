@@ -1,0 +1,99 @@
+name: Build from a request
+
+# Read a build request filed from docs/index.html and start the build.
+#
+# HOW THE PIECES FIT. The page is static: it holds no credentials and calls nothing. All it does is
+# send the reader to this repository's new-issue form with a JSON block already in the body. They
+# press Submit. This workflow reads that JSON and dispatches build.yml. GitHub's own issue form is
+# what does the authenticating, which is why no token ever has to live in a web page.
+#
+# WHY IT ONLY RUNS FOR THE OWNER. CONTRIBUTING.md's licence position is that anyone else forks this
+# and builds in their own account - their build, their artifact, their storage. An issue-triggered
+# workflow with no author check would break that: a stranger could open an issue here and spend the
+# owner's Actions minutes to produce an image in the owner's storage. So the job is guarded, and a
+# request from anyone else gets a comment saying to fork rather than silence.
+#
+# IT DOES NOT CONTAIN THE BUILD. It dispatches build.yml, which is the same workflow the Actions
+# page runs, with the same inputs. There is one build and one list of valid inputs - adding a second
+# copy here is how the two drift apart.
+
+on:
+  issues:
+    types: [ opened, labeled ]
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  dispatch:
+    # The label is what the page sets; the author check is what keeps the licence position true.
+    if: >-
+      contains(github.event.issue.labels.*.name, 'build') &&
+      github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Validated against build.yml's own option lists rather than against a copy kept here, so
+      # there is nothing to drift. A value the workflow would not accept is refused with a comment.
+      - name: Read the request
+        id: req
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 tools/read-request.py >> "$GITHUB_OUTPUT"
+
+      - name: Start the build
+        if: steps.req.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run build.yml \
+            --ref "${{ github.ref_name }}" \
+            -f opnsense_version="${{ steps.req.outputs.opnsense_version }}" \
+            -f image_type="${{ steps.req.outputs.image_type }}" \
+            -f console_speed="${{ steps.req.outputs.console_speed }}" \
+            -f serial_console="${{ steps.req.outputs.serial_console }}" \
+            -f project_ref="${{ steps.req.outputs.project_ref }}"
+
+      - name: Say what happened
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUNS: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/build.yml
+        run: |
+          if [ '${{ steps.req.outputs.ok }}' = 'true' ]; then
+            gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+              "Build started: OPNsense \`${{ steps.req.outputs.opnsense_version }}\` \`${{ steps.req.outputs.image_type }}\` at \`${{ steps.req.outputs.console_speed }}\` baud, os-xgs-npu \`${{ steps.req.outputs.project_ref }}\`." \
+              "" \
+              "It is the newest run under [Build image](${RUNS}). The image is an artifact on that run and expires on its own." \
+              "" \
+              "It has not been booted on an appliance. Burn it and boot it before relying on it.")"
+          else
+            gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+              "This request was not started." \
+              "" \
+              "\`\`\`" \
+              "${{ steps.req.outputs.why }}" \
+              "\`\`\`" \
+              "" \
+              "Fill the form in again at the build page and submit the issue it prepares.")"
+          fi
+
+  # A request from anyone else: answered rather than ignored, and nothing is built.
+  decline:
+    if: >-
+      contains(github.event.issue.labels.*.name, 'build') &&
+      github.event.issue.user.login != github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment '${{ github.event.issue.number }}' --body "$(printf '%s\n' \
+            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes." \
+            "" \
+            "To build one for yourself: fork this repository, turn on Pages for the fork (Settings -> Pages -> branch \`main\`, folder \`/docs\`), and use your fork's copy of the build page. It files the issue on your fork and builds in your account - your build, your artifact, your storage, which is the licence position in CONTRIBUTING.md." \
+            "" \
+            "Nothing was built.")"

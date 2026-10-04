@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build an XGS image</title>
+<!--
+  A static page. It holds no credentials and calls no API.
+
+  All it does is read the dropdowns and send you to this repository's "new issue" page with the
+  title and body already filled in. You press Submit there, and a workflow picks the issue up and
+  runs the build. That is the whole mechanism, and it is why no token is needed: GitHub's own issue
+  form does the authenticating.
+
+  The repository is worked out from this page's own URL, so a fork that publishes Pages gets a page
+  that files issues on the fork and builds in the fork's account. That matters - see CONTRIBUTING.md.
+-->
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0;
+    --field: #ffffff; --accent: #0969da; --accent-fg: #ffffff; --warn-bg: #fff8c5; --warn-line: #d4a72c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d;
+      --field: #0d1117; --accent: #4493f8; --accent-fg: #0d1117; --warn-bg: #282215; --warn-line: #9e6a03;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d;
+    --field: #0d1117; --accent: #4493f8; --accent-fg: #0d1117; --warn-bg: #282215; --warn-line: #9e6a03;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 1.75rem; }
+  .warn {
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 6px;
+    padding: .75rem .9rem; margin: 0 0 1.75rem; font-size: .93rem;
+  }
+  .warn b { display: block; margin-bottom: .2rem; }
+  fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 1.1rem 1.1rem .4rem; margin: 0 0 1.25rem; }
+  legend { padding: 0 .4rem; font-weight: 600; font-size: .9rem; color: var(--muted); }
+  label { display: block; margin-bottom: 1rem; }
+  label > span { display: block; font-weight: 600; font-size: .92rem; margin-bottom: .3rem; }
+  label > em { display: block; font-style: normal; color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  select, input[type=text] {
+    width: 100%; padding: .45rem .6rem; font: inherit; font-size: .95rem;
+    color: var(--fg); background: var(--field);
+    border: 1px solid var(--line); border-radius: 6px;
+  }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--accent-fg);
+    border: 1px solid transparent; border-radius: 6px; padding: .55rem 1.1rem;
+  }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .row { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+  .target { color: var(--muted); font-size: .88rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+  ol { padding-left: 1.3rem; color: var(--muted); font-size: .92rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Build an XGS image</h1>
+  <p class="sub">An OPNsense image for a Sophos XGS appliance, with the
+  <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">os-xgs-npu</a> driver and plugin in it.</p>
+
+  <div class="warn">
+    <b>Nothing built here has been booted on an appliance.</b>
+    The build runs on a GitHub runner, which has no Sophos hardware attached to it. Burn an image
+    and boot it before relying on it.
+  </div>
+
+  <form id="f">
+    <fieldset>
+      <legend>The image</legend>
+
+      <label><span>OPNsense release</span>
+        <select id="opnsense_version" name="opnsense_version">
+          <option value="26.7" selected>26.7</option>
+          <option value="26.1">26.1</option>
+        </select>
+      </label>
+
+      <label><span>Image type</span>
+        <select id="image_type" name="image_type">
+          <option value="serial" selected>serial - for an appliance with no screen</option>
+          <option value="nano">nano</option>
+          <option value="vga">vga</option>
+          <option value="dvd">dvd - refused, see below</option>
+        </select>
+        <em id="type_note"></em>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>The console</legend>
+
+      <label><span>Serial console speed</span>
+        <select id="console_speed" name="console_speed">
+          <option value="115200" selected>115200 - the OPNsense default</option>
+          <option value="38400">38400 - what Sophos firmware uses</option>
+        </select>
+        <em>An XGS appliance has no screen. Choose the wrong one and it boots perfectly into a
+        console you cannot read.</em>
+      </label>
+
+      <label><span>Console on the serial port only</span>
+        <select id="serial_console" name="serial_console">
+          <option value="yes" selected>yes</option>
+          <option value="no">no - serial and video</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>The driver</legend>
+      <label><span>os-xgs-npu commit, tag or branch</span>
+        <input type="text" id="project_ref" name="project_ref" value="main" spellcheck="false">
+        <em>Fetched at build time. No copy of the project lives in this repository.</em>
+      </label>
+    </fieldset>
+
+    <div class="row">
+      <button type="submit" id="go">Open a build request</button>
+      <span class="target" id="target"></span>
+    </div>
+  </form>
+
+  <h2 style="font-size:1.05rem;margin:2.25rem 0 .5rem">What pressing that does</h2>
+  <ol>
+    <li>This page sends you to the repository's <b>new issue</b> form, filled in from your choices
+      above. It calls nothing and holds no credentials.</li>
+    <li>You press <b>Submit new issue</b> there. Nothing runs until you do.</li>
+    <li>A workflow reads the issue and starts the build, and comments with a link to the run.</li>
+    <li>When it finishes, the image is a workflow artifact on that run. It expires on its own.</li>
+  </ol>
+  <p class="sub" style="font-size:.9rem;margin-top:1.25rem">
+    The build only runs for the account that owns the repository, so that nobody else spends your
+    Actions minutes. To build one for yourself, fork the repository, enable Pages on your fork, and
+    use your fork's copy of this page - it will file the issue on your fork. That is the licence
+    position in <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>:
+    your build, your artifact, your storage.
+  </p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // Work the repository out of this page's own URL rather than hard-coding it, so a fork's Pages
+  // site files issues on the fork. user.github.io/<repo>/ gives both halves; a custom domain or a
+  // user/organisation root page gives neither, so fall back and say so rather than guess wrong.
+  function detectRepo() {
+    var host = location.hostname;
+    var m = host.match(/^([^.]+)\.github\.io$/i);
+    var seg = location.pathname.split("/").filter(function (s) { return s.length; });
+    if (m && seg.length) { return m[1] + "/" + seg[0]; }
+    return null;
+  }
+
+  var FALLBACK = "AbdelmonemAwad/xgs-image-builder";
+  var repo = detectRepo() || FALLBACK;
+  var guessed = !detectRepo();
+
+  var target = document.getElementById("target");
+  target.textContent = (guessed ? "will file on " : "files on ") + repo;
+  if (guessed) { target.title = "This page is not served from a user.github.io/<repo> URL, so the repository could not be read from the URL."; }
+
+  var typeNote = document.getElementById("type_note");
+  var typeSel = document.getElementById("image_type");
+  function noteType() {
+    typeNote.textContent = typeSel.value === "dvd"
+      ? "dvd is refused by the build: the installer ISO is read-only and whether files injected into it reach the installed system is unverified. Pick serial, nano or vga."
+      : "";
+  }
+  typeSel.addEventListener("change", noteType);
+  noteType();
+
+  document.getElementById("f").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+
+    var fields = ["opnsense_version", "image_type", "console_speed", "serial_console", "project_ref"];
+    var body = {};
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i]);
+      var v = (el.value || "").trim();
+      if (!v) { el.focus(); return; }
+      body[fields[i]] = v;
+    }
+
+    // The workflow parses this JSON out of the issue body. Keep it the only machine-read thing in
+    // there, fenced so a reader sees what was asked for.
+    var title = "build " + body.opnsense_version + " " + body.image_type + " at " + body.console_speed;
+    var text = "```json\n" + JSON.stringify(body, null, 2) + "\n```\n";
+
+    location.href = "https://github.com/" + repo + "/issues/new"
+      + "?labels=" + encodeURIComponent("build")
+      + "&title=" + encodeURIComponent(title)
+      + "&body=" + encodeURIComponent(text);
+  });
+})();
+</script>
+</body>
+</html>
