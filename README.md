@@ -3,6 +3,17 @@
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it.
 
+**[Open the build page](https://abdelmonemawad.github.io/xgs-image-builder/)** - pick the OPNsense
+release, the image type and the console speed, and it opens the build request for you. No account,
+no token, nothing to install.
+
+That link is this repository's own page, and a build only runs for the account that owns the
+repository it runs in. So it is the one to read; it is not the one to build from. For an image of
+your own, fork this repository and use **your fork's** copy of the page, at
+`https://<your-account>.github.io/<your-fork>/`. The page works out which repository to file
+against from its own URL, so your fork's page files on your fork and builds in your account. Each
+page is live once Pages is turned on for that repository - step 2 below.
+
 > [!WARNING]
 > **Nothing built here has been booted on an appliance.** The build runs on a GitHub runner, which
 > has no Sophos hardware attached to it and never will. Burn an image and boot it before relying
@@ -18,13 +29,13 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
    project to install. Press the button; it fills in a build request and you submit it. A workflow
    picks it up and starts the build.
 
-   The page is at `https://<your-account>.github.io/<this-repo>/`. It is static: it holds no
-   credentials and calls nothing. All it does is send you to this repository's new-issue form with
-   your choices already in the body, and GitHub's own form does the authenticating - which is why
-   no token has to live in a web page. Nothing runs until you press Submit.
-
-   It works out which repository to file against from its own URL, so your fork's page files on
-   your fork and builds in your account.
+   Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
+   worth a look before you fork - is at
+   <https://abdelmonemawad.github.io/xgs-image-builder/>. The page is static: it holds no
+   credentials, calls no API and loads nothing from anywhere. All it does is send you to the
+   repository's new-issue form with your choices already in the body, and GitHub's own form does
+   the authenticating - which is why no token has to live in a web page. Nothing runs until you
+   press Submit.
 
    If you would rather skip the page, the same dropdowns are the workflow's own inputs:
    **[Build image -> Run workflow](../../actions/workflows/build.yml)**. That is where GitHub
