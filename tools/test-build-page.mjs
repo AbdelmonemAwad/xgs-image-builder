@@ -104,7 +104,7 @@ const live = p => p.evaluate(() => ({
   bid = sent.inputs.build_id;
   check('dispatch uses the default branch it was told', sent.ref === 'trunk', sent.ref);
   check('dispatch carries all six inputs', Object.keys(sent.inputs).sort().join(',') ===
-    'build_id,console_speed,image_type,opnsense_version,project_ref,serial_console', Object.keys(sent.inputs).join(','));
+    'build_id,console_speed,front_panel,image_type,opnsense_version,project_ref,serial_console', Object.keys(sent.inputs).join(','));
   check('build_id looks like a nonce', /^web-[a-z0-9]+-[a-z0-9]{6}$/.test(sent.inputs.build_id), sent.inputs.build_id);
   await p.waitForFunction(() => document.getElementById('live').getAttribute('data-state') === 'done', null, { timeout: 60000 });
   const v = await live(p);

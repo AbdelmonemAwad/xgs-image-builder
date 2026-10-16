@@ -470,7 +470,6 @@
               <div class="ctl">
                 <select id="opnsense_version" name="opnsense_version">
                   <option value="26.7" selected>26.7 &mdash; what the driver is built against</option>
-                  <option value="26.1">26.1</option>
                 </select>
               </div>
               <p class="note">Downloaded from OPNsense's own mirror when the build runs, and its
@@ -525,6 +524,19 @@
               </div>
               <p class="note quiet">On an appliance with no video output the two behave the same.
               Leave it on serial only unless you have a reason.</p>
+            </div>
+
+            <div class="field">
+              <label for="front_panel">Front panel</label>
+              <div class="ctl">
+                <select id="front_panel" name="front_panel">
+                  <option value="no" selected>No front panel</option>
+                  <option value="yes">LCD and keys on the front</option>
+                </select>
+              </div>
+              <p class="note quiet">The rack models, such as the XGS 3300, have an LCD and keys on the
+              front; the desktop ones, such as the XGS 136, do not. Yes adds the front panel plugin and
+              LCDproc to the image.</p>
             </div>
 
           </div>
@@ -657,7 +669,7 @@
   /* Written the way GitHub writes it, because it is shown to the reader. Comparisons against it
      are case-folded: a repository path is case-insensitive to GitHub but not to ===. */
   var UPSTREAM = "AbdelmonemAwad/xgs-image-builder";
-  var FIELDS = ["opnsense_version", "image_type", "console_speed", "serial_console", "project_ref"];
+  var FIELDS = ["opnsense_version", "image_type", "console_speed", "serial_console", "front_panel", "project_ref"];
 
   /* Work the repository out of this page's own URL rather than hard-coding it, so a fork's Pages
      site files issues on the fork. user.github.io/<repo>/ gives both halves; a custom domain or a

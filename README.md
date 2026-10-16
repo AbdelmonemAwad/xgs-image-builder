@@ -1,7 +1,8 @@
 # xgs-image-builder
 
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
-[os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it.
+[os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it, and
+the Arabic translation, the right-to-left layout and four appliance plugins beside it.
 
 **[Open the build page](https://abdelmonemawad.github.io/xgs-image-builder/)** - pick the OPNsense
 release, the image type and the console speed, and start the build. Nothing to install.
@@ -98,6 +99,44 @@ its own hardware and exits quietly when it is not there. One image, any supporte
 The driver is **not** shipped prebuilt. It is built on the appliance against that kernel's own
 sources, on first boot, because a module built against a different kernel loads silently and
 would be broken by the first update.
+
+Beside the driver, each from its own repository at the ref [components.list](components.list)
+names, and each recorded by commit in the build's summary:
+
+| | what it is | on after first boot |
+|---|---|---|
+| [opnsense-arabic](https://github.com/AbdelmonemAwad/opnsense-arabic) | the GUI in Arabic | in the language list; the GUI **stays English** until Arabic is chosen |
+| [opnsense-rtl](https://github.com/AbdelmonemAwad/opnsense-rtl) | the right-to-left layout for it | applied; it shows only when the language is Arabic or Persian |
+| [os-netreport](https://github.com/AbdelmonemAwad/os-netreport) | scheduled network reports | on as installed |
+| [os-linkhealth](https://github.com/AbdelmonemAwad/os-linkhealth) | port and cable health | on as installed |
+| [os-fanctl](https://github.com/AbdelmonemAwad/os-fanctl) | fans and temperatures | on, in its watch-only mode: it never writes to a fan chip until a curve is chosen |
+| [os-frontpanel](https://github.com/AbdelmonemAwad/os-frontpanel) | the LCD and keys | in the image **only when the build page's "Front panel" is yes** - a rack model such as the XGS 3300; a desktop such as the XGS 136 has none - and on where the plugin's own table has a confirmed entry for the model |
+
+The front panel needs LCDproc, so when the front panel is asked for its packages are fetched at
+build time from the OPNsense
+repository the image itself is set up for, and installed from those files at first boot: on an
+XGS 3300 there is no network until the driver exists, because the WAN is one of the
+coprocessor's own ports.
+
+**The order is fixed, and it matters.** The first-boot hook in `scripts/inject.sh` installs the
+driver first (the network may depend on it), then LCDproc where there is a panel, then the translation (three plugins add
+their own Arabic strings to its catalog and skip a language whose catalog is missing), then the
+layout, then the plugins, then turns them on. Each step is done once and marked; one that fails is
+logged in `/usr/local/share/xgs-image/firstboot.log` and tried again at the next boot, and does not stop the
+others.
+
+**Each piece keeps itself across OPNsense updates.** An update replaces the files the translation,
+the layout and the plugins' strings live in, and an update that only installs packages does not
+reboot. So each installs a pkg trigger, which pkg runs the moment an update writes into those
+directories, and a boot hook - in its own repository, where the change belongs.
+
+## Why only 26.7 in the release list
+
+Because the driver needs FreeBSD 15. It uses FreeBSD's IPsec offload interface
+(`netipsec/ipsec_offload.h`, `IFCAP2_IPSEC_OFFLOAD`), which OPNsense has from 26.7 on; 26.1 and the
+25.x releases are FreeBSD 14.x, and the module does not compile there. An image of one of those
+would boot with no front ports and, on an XGS 3300, no WAN. A newer release goes into the list once
+it is published and checked against the same two names.
 
 ## Before you change anything here
 
