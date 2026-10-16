@@ -49,6 +49,17 @@ STAMP=$5
 COMPONENTS=${6:-}
 FRONT_PANEL=${7:-no}
 
+# The speed goes into the loader, config.xml and /boot.config; a value none of them can use is
+# refused here rather than written into three files.
+case ${SPEED} in
+9600|19200|38400|57600|115200) ;;
+*) echo "inject.sh: '${SPEED}' is not a serial console speed" >&2; exit 1 ;;
+esac
+case ${SERIAL} in
+yes|no) ;;
+*) echo "inject.sh: serial_console is '${SERIAL}', not yes or no" >&2; exit 1 ;;
+esac
+
 MNT=/mnt/target
 MD=""
 # Room for the kernel source tarball plus the project plus slack. The tarball is the big one: the
@@ -303,6 +314,63 @@ else
         say "console: ${SPEED} baud in the loader; /etc/ttys uses an unpinned getty entry and follows it" ;;
     esac
 fi
+
+# And OPNsense's own configuration, which is the one that decides after the loader. At every boot
+# OPNsense rewrites /etc/ttys - the getty that prints the login prompt - and /boot/loader.conf and
+# /boot.config from the serial speed and the console choice in config.xml, and the serial image
+# ships <serialspeed>115200</serialspeed>. With only the loader set, an image built for 38400 booted
+# readably and then printed its login prompt at 115200: garbage on a 38400 terminal, seen on an
+# appliance on 2026-10-16. QEMU never showed it, because its serial port has no speed.
+#
+# /usr/local/etc/config.xml is the factory default; opnsense-importer copies it to /conf/config.xml
+# on a first boot, and the installer carries that to the disk. An image carries no /conf/config.xml
+# today; one that did gets the same edit. A screen as well as the serial port (serial_console=no) is
+# the secondary console, or OPNsense turns the screen's getty off and the screen has no login.
+set_console_config() {
+    cfg=$1
+    for key in serialspeed primaryconsole secondaryconsole; do
+        case ${key} in
+        serialspeed) val=${SPEED} ;;
+        primaryconsole) val=serial ;;
+        secondaryconsole) [ "${SERIAL}" = yes ] && val= || val=video ;;
+        esac
+        if grep -q "<${key}>" "${cfg}"; then
+            if [ -n "${val}" ]; then
+                sed -i '' -E "s|<${key}>[^<]*</${key}>|<${key}>${val}</${key}>|" "${cfg}"
+            else
+                sed -i '' -E "/<${key}>[^<]*<\/${key}>/d" "${cfg}"
+            fi
+        elif [ -n "${val}" ]; then
+            # after the first <system>, where the serial image keeps the other two
+            awk -v line="    <${key}>${val}</${key}>" \
+                '{ print } !done && /^[[:space:]]*<system>[[:space:]]*$/ { print line; done = 1 }' \
+                "${cfg}" > "${cfg}.new" && mv "${cfg}.new" "${cfg}"
+        fi
+    done
+    # Checked, not assumed: one serialspeed, at this speed, or the image is not built.
+    if [ "$(grep -c "<serialspeed>${SPEED}</serialspeed>" "${cfg}")" != 1 ] ||
+       [ "$(grep -c '<serialspeed>' "${cfg}")" != 1 ]; then
+        say "console: ${cfg#${MNT}} does not carry serialspeed ${SPEED} after the edit"
+        grep -n -E '<(serialspeed|primaryconsole|secondaryconsole)>' "${cfg}" >&2
+        exit 1
+    fi
+    say "console: ${SPEED} baud in ${cfg#${MNT}}: $(grep -o -E '<(serialspeed|primaryconsole|secondaryconsole)>[^<]*' "${cfg}" | tr -d '<' | tr '>\n' '= ')"
+}
+for CFG in "${MNT}/usr/local/etc/config.xml" "${MNT}/conf/config.xml"; do
+    [ -f "${CFG}" ] && set_console_config "${CFG}"
+done
+[ -f "${MNT}/usr/local/etc/config.xml" ] ||
+    say "console: no /usr/local/etc/config.xml in this image - OPNsense will choose the speed itself"
+
+# The boot blocks read /boot.config before the loader exists, on a machine that boots by BIOS, and
+# the serial image ships -S115200. Written as OPNsense writes it from the same settings, so the
+# first boot and every later one print at the same speed from the first line.
+if [ "${SERIAL}" = yes ]; then
+    echo "-S${SPEED} -h" > "${MNT}/boot.config"
+else
+    echo "-S${SPEED} -h -D" > "${MNT}/boot.config"
+fi
+say "console: /boot.config is $(cat "${MNT}/boot.config")"
 
 # ------------------------------------------------------------------ first boot
 

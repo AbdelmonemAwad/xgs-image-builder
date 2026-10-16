@@ -90,6 +90,14 @@ An XGS appliance has no screen. OPNsense defaults its serial console to **115200
 firmware uses **38400** on the same port. Choose the wrong one and the appliance boots perfectly
 into a console you cannot read. The dropdown exists for that reason.
 
+The speed chosen is written everywhere the port's speed is decided, not only in the loader: the
+loader (`/boot/loader.conf.local`), the boot blocks (`/boot.config`), and OPNsense's own default
+configuration (`serialspeed` in `/usr/local/etc/config.xml`). The last one matters most. At every
+boot OPNsense rewrites the login prompt's speed in `/etc/ttys` from that setting, and the serial
+image ships 115200 - so until 2026-10-16 an image built for 38400 booted readably and then printed
+its login prompt at 115200, which a 38400 terminal shows as garbage. With "serial only" off, the
+screen is set as the second console too, so it gets a login prompt of its own.
+
 ## What is in the image
 
 Everything the project supports, for every appliance family, with the selection made **at first
