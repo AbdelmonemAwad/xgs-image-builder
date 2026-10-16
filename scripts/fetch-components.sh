@@ -32,5 +32,9 @@ grep -v '^[[:space:]]*#' "${LIST}" | grep -v '^[[:space:]]*$' | while read -r na
     esac
     stamp=$(PROJECT_URL=${url} sh "${HERE}/fetch-project.sh" "${ref:-main}" "${DEST}/${name}")
     rm -rf "${DEST}/${name}/.git"
+    # The commit, inside the tree, for its installer: with .git gone this is the only place it can
+    # read what it is installing, and it records that as the version its daily self-update moves
+    # forward from. Without it the first release would be taken even when it is older than this.
+    printf '%s\n' "${stamp}" > "${DEST}/${name}/.source-commit"
     printf '%s %s\n' "${name}" "${stamp}" | tee -a "${DEST}/STAMPS"
 done
