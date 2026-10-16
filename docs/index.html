@@ -215,6 +215,12 @@
   .call.stop { background: var(--stop-bg); border-color: var(--stop-edge); color: var(--stop); }
   .call.hide { display: none; }
 
+  /* The installation steps, a plain numbered list in a card. */
+  .install { margin-top: 1.5rem; }
+  .steps { margin: 0; padding-left: 1.3rem; }
+  .steps li { margin: .55rem 0; font-size: .92rem; line-height: 1.6; color: var(--ink-2); }
+  .steps li strong { color: var(--ink); }
+
   /* ====================================================================
      Cards
      ==================================================================== */
@@ -431,14 +437,30 @@
     <div class="cols">
 
       <div>
+        <!-- TEMPORARY: the notice at the top of os-xgs-npu's README, word for word. It comes off this
+             page when it comes off that one - when the XGS 136's integration and its testing are
+             finished. -->
+        <div class="call stop" id="wip_note">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4m0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+          </svg>
+          <span><strong>WORK IN PROGRESS, 2026-10-14: the XGS 136's driver, hooks and hardware
+          support are being integrated into this repository and its plugins right now. Nothing here
+          is advised for any use or any test on either appliance - the XGS 136 or the XGS 3300 -
+          until the integration and its testing are finished and this notice is removed.</strong>
+          The same notice heads the <a href="https://github.com/AbdelmonemAwad/os-xgs-npu#readme">driver
+          project</a>, and it comes off this page when it comes off that one.</span>
+        </div>
+
         <div class="call warn">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M6.46 1.14a1.75 1.75 0 0 1 3.08 0l5.25 9.5A1.75 1.75 0 0 1 13.25 13.3H2.75A1.75 1.75 0 0 1 1.21 10.64ZM8 5a.75.75 0 0 0-.75.75v2.5a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8 5m0 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
           </svg>
-          <span><strong>This image has not been booted on any appliance. Burn one and boot it
-          before relying on it.</strong> The build runs on a GitHub runner, which has no Sophos
-          hardware attached to it and never will. Nothing offered on this page has been tested on a
-          device.</span>
+          <span><strong><del>This image has not been booted on any appliance.</del> One image built
+          here - 26.7, serial, 38400 baud - has been installed on an XGS 3300 (2026-10-16); no other
+          combination has been booted on a device. Burn one and boot it before relying on it.</strong>
+          The build runs on a GitHub runner, which has no Sophos hardware attached to it and never
+          will.</span>
         </div>
 
         <div class="call stop hide" id="upstream_note">
@@ -640,6 +662,53 @@
 
     </div>
   </form>
+
+  <!-- TEMPORARY, with the notice above: how the image goes onto an appliance, until the README
+       of the driver project carries it and the integration is finished. -->
+  <section class="card install" id="install_steps">
+    <div class="card-head"><h2>Installing the image</h2></div>
+    <div class="card-body">
+      <ol class="steps">
+        <li><strong>Unpack it.</strong> The download is a zip holding one <code>.img.xz</code>.
+        Unzip it, then decompress the <code>.xz</code> - 7-Zip on Windows, <code>xz -d</code>
+        elsewhere - to get the <code>.img</code>.</li>
+        <li><strong>Write it to a USB stick</strong> of 4 GB or more with a raw image writer -
+        Rufus in DD mode, balenaEtcher, or <code>dd</code>. Everything on the stick is replaced.</li>
+        <li><strong>Connect the serial console</strong> at the speed chosen on this page - 115200
+        or 38400 - 8 data bits, no parity, 1 stop bit, no flow control. An image built before
+        2026-10-16 at 38400 prints its login prompt at 115200; build it again.</li>
+        <li><strong>Boot from the stick:</strong> put it in a USB port, power on, and choose it
+        in the boot menu or put it first in the boot order.</li>
+        <li><strong>The first boot runs from the stick</strong> and installs the driver and the
+        plugins into the running system (the log is
+        <code>/usr/local/share/xgs-image/firstboot.log</code>). Wait for the login prompt. The
+        front ports are not there yet: the driver is loaded from the next boot on.</li>
+        <li><strong>Install to the appliance's disk:</strong> log in as <code>installer</code>
+        with the password <code>opnsense</code> and follow the installer. The disk chosen is
+        erased - on an XGS the internal disk holds the vendor's firmware. When it finishes, take
+        the stick out and reboot.</li>
+        <li><strong>The first boot from the disk counts thirty seconds down</strong> on the
+        console: "XGS: assigning the front ports by the names on the chassis". Let it run out and
+        the ports are assigned by the names printed on the chassis; press any key to assign them
+        by hand from the console menu. Automatically:
+          <ul>
+            <li><strong>WAN</strong>: Port2 on an XGS 3300, Port1 on an XGS 136 - by DHCP;</li>
+            <li><strong>LAN</strong>: every other front port, an expansion module's included, in
+            one bridge on <strong>192.168.1.1/24</strong> with DHCP;</li>
+            <li><strong>MGMT</strong>: the management port, where there is one (the XGS 3300's),
+            on <strong>192.168.100.1/24</strong> with DHCP.</li>
+          </ul>
+        </li>
+        <li><strong>Connect:</strong> <code>https://192.168.1.1</code> from any LAN port, or
+        <code>https://192.168.100.1</code> from the management port, and log in as
+        <code>root</code> / <code>opnsense</code> - then change that password. The management port
+        you installed through answers on 192.168.100.1 from this boot on, not on 192.168.1.1.</li>
+        <li><strong>Updates:</strong> the driver from System - Firmware - XGS Coprocessor; the
+        translation, the layout and the plugins follow their own releases by themselves, once a
+        day.</li>
+      </ol>
+    </div>
+  </section>
 </main>
 
 <footer>
