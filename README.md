@@ -130,6 +130,12 @@ the layout and the plugins' strings live in, and an update that only installs pa
 reboot. So each installs a pkg trigger, which pkg runs the moment an update writes into those
 directories, and a boot hook - in its own repository, where the change belongs.
 
+**And each keeps itself up to date.** The driver from System - Firmware - XGS Coprocessor, the
+others by themselves once a day from their own repository's latest release. Both move only
+forward from what is installed, which they read from the commit this builder writes into each tree
+as `.source-commit` (the driver's as `.image-build`): with `.git` removed from the image that is the
+only record of it, and without it a release older than the image would be taken.
+
 ## Why only 26.7 in the release list
 
 Because the driver needs FreeBSD 15. It uses FreeBSD's IPsec offload interface
