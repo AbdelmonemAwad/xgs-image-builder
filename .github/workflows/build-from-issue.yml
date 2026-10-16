@@ -94,6 +94,7 @@ jobs:
           IMAGE_TYPE: ${{ steps.req.outputs.image_type }}
           CONSOLE_SPEED: ${{ steps.req.outputs.console_speed }}
           SERIAL_CONSOLE: ${{ steps.req.outputs.serial_console }}
+          FRONT_PANEL: ${{ steps.req.outputs.front_panel }}
           PROJECT_REF: ${{ steps.req.outputs.project_ref }}
           BUILD_ID: ${{ steps.req.outputs.build_id }}
         run: |
@@ -104,6 +105,7 @@ jobs:
             -f image_type="$IMAGE_TYPE" \
             -f console_speed="$CONSOLE_SPEED" \
             -f serial_console="$SERIAL_CONSOLE" \
+            -f front_panel="$FRONT_PANEL" \
             -f project_ref="$PROJECT_REF" \
             -f build_id="$BUILD_ID"
 

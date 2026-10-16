@@ -14,11 +14,16 @@ name: Build image
 on:
   workflow_dispatch:
     inputs:
+      # Only releases the driver can be built on. It uses FreeBSD 15's IPsec offload interface
+      # (netipsec/ipsec_offload.h, IFCAP2_IPSEC_OFFLOAD), which OPNsense has from 26.7 on: 26.1 and
+      # 25.x are FreeBSD 14.x, where the module does not compile, so an image of them would boot
+      # with no front ports and, on an XGS 3300, no WAN. Checked against opnsense/src's stable
+      # branches, not assumed. A newer release goes in here once it is published and checked.
       opnsense_version:
-        description: 'OPNsense release'
+        description: 'OPNsense release (26.7 and later: the driver needs FreeBSD 15)'
         type: choice
         default: '26.7'
-        options: [ '26.7', '26.1' ]
+        options: [ '26.7' ]
       image_type:
         description: 'Image type - serial for an appliance with no screen (dvd is refused, see README)'
         type: choice
@@ -34,6 +39,15 @@ on:
         type: choice
         default: 'yes'
         options: [ 'yes', 'no' ]
+      # One image cannot tell from inside a build whether the appliance it will boot on has a
+      # front panel, and the owner can: the rack models (the XGS 3300) have an LCD and keys, the
+      # desktop ones (the XGS 136) have none. So it is asked here, and the image carries the front
+      # panel plugin and LCDproc only when the answer is yes.
+      front_panel:
+        description: 'The appliance has a front panel (LCD and keys) - adds the front panel plugin and LCDproc'
+        type: choice
+        default: 'no'
+        options: [ 'no', 'yes' ]
       project_ref:
         description: 'os-xgs-npu commit, tag or branch to install'
         type: string
@@ -115,6 +129,15 @@ jobs:
           echo "stamp=${stamp}" >> "$GITHUB_OUTPUT"
           echo "installing os-xgs-npu ${stamp}"
 
+      # The rest of what goes into the image - the Arabic translation, the right-to-left layout and
+      # the four plugins - each from its own repository at the ref components.list gives, each
+      # recorded by commit in components/STAMPS. What they are is that list; the order they are
+      # installed in is the first-boot hook in scripts/inject.sh, because that order matters.
+      - name: Fetch the components
+        run: |
+          set -eu
+          sh scripts/fetch-components.sh components.list components
+
       # A forty-minute pipeline that moves gigabytes inside a guest, whose log is its only witness,
       # has to say where it is and what it has left.
       - name: Space before the guest starts
@@ -140,13 +163,14 @@ jobs:
           OPN_SHA: ${{ steps.release.outputs.sha256 }}
           CONSOLE_SPEED: ${{ inputs.console_speed }}
           SERIAL_CONSOLE: ${{ inputs.serial_console }}
+          FRONT_PANEL: ${{ inputs.front_panel }}
           PROJ_STAMP: ${{ steps.project.outputs.stamp }}
           OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img
         with:
           release: '14.2'
           sync: sshfs
           copyback: true
-          envs: 'OPN_URL OPN_FILE OPN_SHA CONSOLE_SPEED SERIAL_CONSOLE PROJ_STAMP OUT_NAME'
+          envs: 'OPN_URL OPN_FILE OPN_SHA CONSOLE_SPEED SERIAL_CONSOLE FRONT_PANEL PROJ_STAMP OUT_NAME'
           run: |
             set -eu
             cd "${GITHUB_WORKSPACE}"
@@ -179,7 +203,9 @@ jobs:
               "${CONSOLE_SPEED}" \
               "${SERIAL_CONSOLE}" \
               "${GITHUB_WORKSPACE}/project" \
-              "${PROJ_STAMP}"
+              "${PROJ_STAMP}" \
+              "${GITHUB_WORKSPACE}/components" \
+              "${FRONT_PANEL}"
 
             stage repack
             mv "${img}" "${OUT_NAME}"
@@ -201,6 +227,7 @@ jobs:
           IMAGE_TYPE: ${{ inputs.image_type }}
           CONSOLE_SPEED: ${{ inputs.console_speed }}
           SERIAL_CONSOLE: ${{ inputs.serial_console }}
+          FRONT_PANEL: ${{ inputs.front_panel }}
           OPN_FILE: ${{ steps.release.outputs.file }}
           PROJ_STAMP: ${{ steps.project.outputs.stamp }}
         run: |
@@ -210,7 +237,13 @@ jobs:
             printf '| | |\n|---|---|\n'
             printf '| OPNsense | `%s` `%s` |\n' "$OPN_VERSION" "$IMAGE_TYPE"
             printf '| console | `%s` baud, serial only: `%s` |\n' "$CONSOLE_SPEED" "$SERIAL_CONSOLE"
+            printf '| front panel | `%s` - the plugin and LCDproc are in the image only for yes |\n' "$FRONT_PANEL"
             printf '| os-xgs-npu | `%s` |\n' "$PROJ_STAMP"
+            if [ -f components/STAMPS ]; then
+              while read -r name commit rest; do
+                printf '| %s | `%s` %s |\n' "$name" "$(printf '%s' "$commit" | cut -c1-12)" "$(printf '%s' "$rest" | cut -c27-90)"
+              done < components/STAMPS
+            fi
             printf '| upstream file | `%s` |\n' "$OPN_FILE"
             printf '| checksum | verified against the list the release publishes |\n\n'
             printf '> **This image has not been booted on an appliance.** A GitHub runner has no\n'
@@ -220,7 +253,12 @@ jobs:
             printf 'one built against a different kernel loads without complaining and then reads\n'
             printf 'structures at the wrong offsets.\n\n'
             printf 'Every family is installed. The selection happens at first boot, by guards that\n'
-            printf 'already exist in the project. See `docs/board-maps.md`.\n'
+            printf 'already exist in the project. See `docs/board-maps.md`.\n\n'
+            printf 'With it: the Arabic translation and the right-to-left layout (the GUI stays in\n'
+            printf 'English until Arabic is chosen), three plugins, and - when the front panel was\n'
+            printf 'asked for - the front panel plugin with the LCDproc packages it needs. All installed\n'
+            printf 'at first boot, in order, and each keeps itself across OPNsense updates with a pkg\n'
+            printf 'trigger and a boot hook of its own.\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4

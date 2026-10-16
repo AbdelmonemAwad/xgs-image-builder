@@ -28,7 +28,16 @@
 # NO PREBUILT MODULE. A module built against a different kernel in the same branch loads without
 # complaining and then reads structures at the wrong offsets. Sources only.
 #
-# Usage: inject.sh <image> <console_speed> <serial_console yes|no> <project dir> <stamp>
+# AND THE COMPONENTS: the Arabic translation, the right-to-left layout and the four plugins, each
+# fetched from its own repository by fetch-components.sh, and the package files of lcdproc, which
+# the front panel plugin needs and which is fetched here, for this image, because on an XGS 3300
+# there is no network at first boot until the driver exists. All of it is installed by the
+# first-boot hook at the end of this file, in an order that matters; the hook says why.
+#
+# The front panel plugin, and the LCDproc it needs, go in only when the build was told the
+# appliance has a front panel - the last argument, the build page's "Front panel".
+#
+# Usage: inject.sh <image> <console_speed> <serial_console yes|no> <project dir> <stamp> [<components dir> [<front panel yes|no>]]
 
 set -eu
 
@@ -37,6 +46,8 @@ SPEED=$2
 SERIAL=$3
 PROJECT=$4
 STAMP=$5
+COMPONENTS=${6:-}
+FRONT_PANEL=${7:-no}
 
 MNT=/mnt/target
 MD=""
@@ -124,9 +135,12 @@ say "kernel sources: ${TAR_MB} MB"
 # ------------------------------------------------------------------ make room, then write
 
 PROJ_MB=$(( $(du -sk "${PROJECT}" | awk '{print $1}') / 1024 ))
-WANT_MB=$(( PROJ_MB + TAR_MB + 128 ))
+COMP_MB=0
+[ -n "${COMPONENTS}" ] && COMP_MB=$(( $(du -sk "${COMPONENTS}" | awk '{print $1}') / 1024 ))
+# lcdproc and what it depends on are a few megabytes; 32 covers them with room.
+WANT_MB=$(( PROJ_MB + COMP_MB + 32 + TAR_MB + 128 ))
 [ "${WANT_MB}" -lt "${NEED_MB}" ] && WANT_MB=${NEED_MB}
-say "project ${PROJ_MB} MB + sources ${TAR_MB} MB + slack = ${WANT_MB} MB wanted"
+say "project ${PROJ_MB} MB + components ${COMP_MB} MB + sources ${TAR_MB} MB + slack = ${WANT_MB} MB wanted"
 
 attach
 mount "/dev/${PART}" "${MNT}"
@@ -179,6 +193,69 @@ mkdir -p "${SHARE}/kernel-sources"
 cp "${TARBALL}" "${SHARE}/kernel-sources/"
 say "kernel sources placed in /usr/local/share/os-xgs-npu/kernel-sources/${TARBALL}"
 
+# ------------------------------------------------------------------ the components
+
+IMGSHARE="${MNT}/usr/local/share/xgs-image"
+if [ -n "${COMPONENTS}" ]; then
+    mkdir -p "${IMGSHARE}/components"
+    cp -a "${COMPONENTS}/." "${IMGSHARE}/components/"
+    if [ "${FRONT_PANEL}" != yes ]; then
+        rm -rf "${IMGSHARE}/components/os-frontpanel"
+        say "no front panel asked for: the front panel plugin is left out"
+    fi
+    say "components installed under /usr/local/share/xgs-image/components:"
+    sed 's/^/      /' "${IMGSHARE}/components/STAMPS" | cut -c1-110
+fi
+
+# ------------------------------------------------------------------ the packages they need
+
+# lcdproc, which the front panel plugin refuses to install without, and what it depends on. Fetched
+# from the OPNsense repository THIS IMAGE is set up for, for THIS IMAGE's ABI - read off its own
+# /usr/bin/uname - so the files are the ones its own pkg would have fetched. At first boot `pkg add`
+# installs lcdproc from them and takes any dependency the image does not already have from the same
+# directory. Installed that way it is a registered package, so firmware updates update it like any
+# other from then on.
+#
+# The guest's own pkg does the fetching, pointed at a scratch database and at a copy of the image's
+# repository file whose fingerprints path is moved into the mounted image: nothing is written into
+# the image's own package database, and the signatures are checked against the image's own keys.
+fetch_packages() {
+    pkgtmp=$(mktemp -d /tmp/xib-pkg.XXXXXX)
+    mkdir -p "${pkgtmp}/repos" "${pkgtmp}/db" "${pkgtmp}/cache"
+    conf="${MNT}/usr/local/etc/pkg/repos/OPNsense.conf"
+    [ -f "${conf}" ] || conf="${conf}.sample"
+    if [ ! -f "${conf}" ]; then
+        say "no OPNsense repository configuration in the image"
+        return 1
+    fi
+    sed "s|\"/usr/local/etc/pkg/fingerprints|\"${MNT}/usr/local/etc/pkg/fingerprints|" "${conf}" \
+        > "${pkgtmp}/repos/OPNsense.conf"
+    if ! pkg -N > /dev/null 2>&1; then
+        env ASSUME_ALWAYS_YES=yes pkg bootstrap -f > /dev/null
+    fi
+    rc=0
+    # IP_VERSION=4: pkg.opnsense.org answers on IPv6 too, and a machine with an IPv6 route but no
+    # IPv6 reach made pkg fail every request with "Network is unreachable" and sit in its retries
+    # rather than fall back (measured on an XGS 136, where fetch(1) to an IPv4-only host worked).
+    # A GitHub runner has no IPv6 at all. IPv4 reaches the repository from both.
+    pkg -o ABI_FILE="${MNT}/usr/bin/uname" -o REPOS_DIR="${pkgtmp}/repos" \
+        -o PKG_DBDIR="${pkgtmp}/db" -o PKG_CACHEDIR="${pkgtmp}/cache" \
+        -o IGNORE_OSVERSION=yes -o ASSUME_ALWAYS_YES=yes -o IP_VERSION=4 \
+        fetch -y -d -o "$1" lcdproc || rc=$?
+    rm -rf "${pkgtmp}"
+    return ${rc}
+}
+if [ -n "${COMPONENTS}" ] && [ "${FRONT_PANEL}" = yes ] && [ -d "${COMPONENTS}/os-frontpanel" ]; then
+    mkdir -p "${IMGSHARE}/packages"
+    if ! fetch_packages "${IMGSHARE}/packages"; then
+        say "could not fetch lcdproc for this image. The front panel plugin cannot install without"
+        say "it, and on an XGS 3300 there is no network at first boot to fetch it then. Refusing"
+        say "to produce an image that cannot finish installing itself."
+        exit 1
+    fi
+    say "packages carried for first boot: $(ls "${IMGSHARE}/packages/All" | tr '\n' ' ')"
+fi
+
 # ------------------------------------------------------------------ the console
 
 # loader.conf.local, not loader.conf: the loader reads it afterwards so these win, and OPNsense
@@ -229,44 +306,110 @@ fi
 
 # ------------------------------------------------------------------ first boot
 
-# install.sh has to run where SMBIOS is readable. It runs once, logs, and leaves a marker so a
-# reboot does not repeat it. Every failure exits 0: a firewall that boots without the coprocessor
-# is better than one that does not boot, which is the rule 08-octep already follows.
+# Everything is installed where SMBIOS is readable - on the machine itself, at its first boot - by
+# one hook that does it in order, once per piece, and leaves a mark per piece so that a reboot does
+# not repeat what is done and does retry what failed. Every failure exits 0: a firewall that boots
+# without one of these is better than one that does not boot, which is the rule 08-octep follows.
 #
 # The `start` level is used because it is one the appliance actually calls. The project learned
 # that the expensive way - a hook at a level nobody calls "looks like a guarantee and it is a file".
 HOOKDIR="${MNT}/usr/local/etc/rc.syshook.d/start"
 mkdir -p "${HOOKDIR}"
-cat > "${HOOKDIR}/00-os-xgs-npu-firstboot" <<'HOOK'
+cat > "${HOOKDIR}/00-xgs-image-firstboot" <<'HOOK'
 #!/bin/sh
 #-
-# Install os-xgs-npu on first boot, from the sources this image carries.
+# Install what this image carries, on its first boot. NOT TESTED ON AN APPLIANCE.
 #
-# NOT TESTED ON AN APPLIANCE. If this does nothing, the tree is under
-# /usr/local/share/os-xgs-npu/source and install/install.sh can be run by hand as root.
+# THE ORDER, and why each step is where it is:
+#
+#   1. os-xgs-npu       the coprocessor driver, built here from the sources this image carries.
+#                       First, because on an XGS 3300 the WAN is one of the coprocessor's own ports:
+#                       nothing has a network until the driver exists.
+#   2. lcdproc          from the package files this image carries - there only when the image was
+#                       built with a front panel. The front panel plugin refuses to install without
+#                       LCDd, and there may be no network to fetch it with.
+#   3. opnsense-arabic  before the plugins. Three of them add their own Arabic strings to the
+#                       catalog it installs and skip a language whose catalog is not there, and
+#                       its installer writes the catalog over anything added before it.
+#   4. opnsense-rtl     the right-to-left layout.
+#   5. the plugins      os-netreport, os-linkhealth, os-fanctl, and os-frontpanel when the image was
+#                       built with a front panel (the build page's "Front panel").
+#   6. turning them on  install/enable.sh, where a plugin has one. os-netreport and os-linkhealth
+#                       are on as installed. os-fanctl comes on in its watch-only mode, which never
+#                       writes to a fan chip. os-frontpanel comes on only where the plugin's own
+#                       table has an entry for this model that was confirmed on the hardware;
+#                       anywhere else it stays off and the log says why.
+#
+# The GUI language is not touched: it stays English, OPNsense's default, with Arabic in the list.
+#
+# Each piece keeps itself across OPNsense updates from then on - a pkg trigger and a boot hook of
+# its own, installed by its own installer. This hook is only the first install.
+#
+# If something here does nothing: the pieces are under /usr/local/share/xgs-image/components and
+# /usr/local/share/os-xgs-npu/source, and each one's installer can be run by hand as root.
 
-SRC=/usr/local/share/os-xgs-npu/source
-MARKER=/usr/local/share/os-xgs-npu/.installed
-LOG=/var/log/os-xgs-npu-install.log
+SHARE=/usr/local/share/xgs-image
+COMP=${SHARE}/components
+DONE=${SHARE}/done
+# Not under /var/log: on the install media this hook runs in live mode, and the installer clones
+# /usr/local to the disk but not that log - measured, the installed system had every piece and no
+# log of how they got there. Beside the markers it is copied with them.
+LOG=${SHARE}/firstboot.log
 
-log() { /usr/bin/logger -t os-xgs-npu -p daemon.notice "$1"; }
+mkdir -p "${DONE}"
 
-[ -f "${MARKER}" ] && exit 0
-[ -d "${SRC}" ] || { log "no ${SRC} - nothing to install"; exit 0; }
+log() {
+    /usr/bin/logger -t xgs-image -p daemon.notice "$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "${LOG}"
+}
 
-log "installing from ${SRC}; this builds the kernel module and takes a few minutes"
+# step <name> <command...>: once, marked when it succeeds; a failure is logged and retried next boot
+step() {
+    name=$1
+    shift
+    [ -f "${DONE}/${name}" ] && return 0
+    log "${name}: installing"
+    if "$@" >> "${LOG}" 2>&1; then
+        date > "${DONE}/${name}"
+        log "${name}: done"
+    else
+        log "${name}: failed - see ${LOG}; it is tried again at the next boot"
+    fi
+}
 
-# install.sh refuses a board this project has not run on, and that is the behaviour wanted here:
-# an unknown appliance gets nothing rather than another board's pieces.
-if /bin/sh "${SRC}/install/install.sh" > "${LOG}" 2>&1; then
-    date > "${MARKER}"
-    log "installed - see ${LOG}"
-else
-    log "install.sh refused or failed; see ${LOG}. Carrying on so the firewall still boots"
+# 1. The driver. install.sh refuses a board this project has not run on, which is the behaviour
+# wanted: an unknown appliance gets nothing rather than another board's pieces.
+if [ -f /usr/local/share/os-xgs-npu/source/install/install.sh ]; then
+    step os-xgs-npu /bin/sh /usr/local/share/os-xgs-npu/source/install/install.sh
 fi
+
+# 2. lcdproc, from the files, for the front panel; pkg add takes any missing dependency from the
+# same directory. The files are in the image only when it was built with a front panel.
+LCDPKG=$(ls "${SHARE}"/packages/All/lcdproc-*.pkg 2>/dev/null | head -1)
+if [ -n "${LCDPKG}" ]; then
+    step lcdproc /bin/sh -c "[ -x /usr/local/sbin/LCDd ] || pkg add '${LCDPKG}'"
+fi
+
+# 3 and 4. The translation, then the layout.
+for c in opnsense-arabic opnsense-rtl; do
+    [ -f "${COMP}/${c}/install.sh" ] && step "${c}" /bin/sh "${COMP}/${c}/install.sh"
+done
+
+# 5. The plugins; os-frontpanel is here only when the image was built with a front panel.
+for c in os-netreport os-linkhealth os-fanctl os-frontpanel; do
+    [ -f "${COMP}/${c}/install/install.sh" ] && step "${c}" /bin/sh "${COMP}/${c}/install/install.sh"
+done
+
+# 6. On, where a plugin has a way to turn itself on - and only once it is installed.
+for c in os-fanctl os-frontpanel; do
+    if [ -f "${DONE}/${c}" ] && [ -f "${COMP}/${c}/install/enable.sh" ]; then
+        step "${c}-enabled" /bin/sh "${COMP}/${c}/install/enable.sh"
+    fi
+done
+
 exit 0
 HOOK
-chmod 0755 "${HOOKDIR}/00-os-xgs-npu-firstboot"
+chmod 0755 "${HOOKDIR}/00-xgs-image-firstboot"
 say "first-boot hook installed"
 
 # ------------------------------------------------------------------ close it cleanly

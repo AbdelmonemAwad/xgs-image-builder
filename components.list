@@ -1,0 +1,12 @@
+# What goes into the image besides os-xgs-npu, one repository per line: a name, the repository,
+# and the branch, tag or commit to take. Each is its own project with its own installer; this list
+# only says where to fetch them from. The ORDER they are installed in is not this list's: it is
+# fixed in the first-boot hook in scripts/inject.sh, because it matters - see the comment there.
+#
+# name            repository                                              ref
+opnsense-arabic   https://github.com/AbdelmonemAwad/opnsense-arabic      main
+opnsense-rtl      https://github.com/AbdelmonemAwad/opnsense-rtl         main
+os-netreport      https://github.com/AbdelmonemAwad/os-netreport         main
+os-linkhealth     https://github.com/AbdelmonemAwad/os-linkhealth        main
+os-fanctl         https://github.com/AbdelmonemAwad/os-fanctl            main
+os-frontpanel     https://github.com/AbdelmonemAwad/os-frontpanel        main
