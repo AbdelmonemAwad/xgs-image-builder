@@ -6,9 +6,6 @@ that is not hypothetical, it is why this file exists.
 
 ## Publishing
 
-- **No AI attribution anywhere.** Not in a commit message, not in a pull request title or body, not
-  in an issue, not in a comment. No line, no emoji, no link. If your tooling adds one, remove it
-  before you submit.
 - **English only** in code, in documentation and in anything published here.
 - **Pull requests, never a direct push to `main`.**
 - **Claim only what is tested.** Nothing here is built or booted by CI on real hardware, so say so
