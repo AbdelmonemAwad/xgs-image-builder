@@ -15,9 +15,11 @@ against from its own URL, so your fork's page files on your fork and builds in y
 page is live once Pages is turned on for that repository - step 2 below.
 
 > [!WARNING]
-> **Nothing built here has been booted on an appliance.** The build runs on a GitHub runner, which
-> has no Sophos hardware attached to it and never will. Burn an image and boot it before relying
-> on it.
+> ~~**Nothing built here has been booted on an appliance.**~~ **One image built here has been
+> installed on an appliance**: OPNsense 26.7, serial, 38400 baud, on an XGS 3300 (2026-10-16), which
+> then assigned its own front ports at its first boot from disk. No other combination has been
+> booted. The build runs on a GitHub runner, which has no Sophos hardware attached to it and never
+> will. Burn an image and boot it before relying on it.
 
 ## How it is meant to be used
 
@@ -160,3 +162,14 @@ shape the image, and it is short.
 ## Status
 
 Nothing here is finished. See the issues.
+
+- **Installing an image** is on the build page, step by step, for as long as the driver project's
+  work-in-progress notice stands: write the image to a stick, boot it, install to the disk, and at
+  the first boot from the disk a thirty-second countdown on the console assigns the front ports -
+  WAN on Port2 (XGS 3300) or Port1 (XGS 136), every other front port in one bridge as LAN on
+  192.168.1.1, and the management port, where there is one, as MGMT on 192.168.100.1. A key during
+  the countdown leaves the assignment to OPNsense's own menu.
+- **What the driver project measured on the appliances since** - IPsec with the coprocessor's engine
+  at both ends of a tunnel, jumbo frames through the switch chip, the MTU from 576 to 9000 - is in
+  its [measurements](https://github.com/AbdelmonemAwad/os-xgs-npu/tree/main/docs/measurements);
+  an image built here installs that project, so it carries all of it.
