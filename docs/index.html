@@ -192,7 +192,45 @@
   .rail li.on .pip { background: var(--hero-glow); border-color: var(--hero-glow); color: #06101f; }
   .rail .t { display: block; margin-top: .7rem; font-size: .9rem; font-weight: 600; color: var(--hero-ink-2); }
   .rail li.on .t { color: #fff; }
+  .rail li.done .pip { background: #2ea043; border-color: #2ea043; color: #fff; }
+  .rail li.done .t { color: var(--hero-ink); }
   .rail .d { display: block; margin-top: .15rem; font-size: .82rem; color: var(--hero-ink-2); opacity: .8; padding-right: .5rem; }
+
+  /* ====================================================================
+     Progress, pinned to the top of the window while a build is followed
+     ==================================================================== */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--hero-1); color: var(--hero-ink);
+    border-bottom: 1px solid var(--hero-edge); box-shadow: 0 2px 12px rgba(0,0,0,.28);
+  }
+  .topbar-track { height: 4px; background: rgba(255,255,255,.10); }
+  .topbar-fill { height: 100%; width: 0; background: var(--hero-glow); transition: width .8s ease; }
+  .topbar[data-state="done"] .topbar-fill { background: #3fb950; }
+  .topbar[data-state="failed"] .topbar-fill { background: #f85149; }
+  .topbar-row { display: flex; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; padding-top: .55rem; padding-bottom: .55rem; }
+  .stages { display: flex; gap: .35rem; margin: 0; padding: 0; flex-wrap: wrap; }
+  .stages li {
+    list-style: none; display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .8rem; color: var(--hero-ink-2); padding: .14rem .6rem .14rem .5rem;
+    border: 1px solid var(--hero-edge); border-radius: 999px; white-space: nowrap;
+  }
+  .stages .tick { width: .5rem; height: .5rem; border-radius: 50%; background: var(--hero-edge); flex: none; }
+  .stages li.done { color: var(--hero-ink); }
+  .stages li.done .tick { background: #3fb950; }
+  .stages li.on { color: #fff; border-color: var(--hero-glow); }
+  .stages li.on .tick { background: var(--hero-glow); animation: pulse 1.4s ease-in-out infinite; }
+  .stages li.bad { color: #ffc1bd; border-color: #f85149; }
+  .stages li.bad .tick { background: #f85149; }
+  .topbar-step {
+    flex: 1 1 12rem; min-width: 0; font-size: .82rem; color: var(--hero-ink-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .topbar-num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums; font-size: .9rem; color: #fff;
+  }
+  .topbar-num:empty { display: none; }
 
   /* ====================================================================
      Layout
@@ -374,6 +412,11 @@
     .rail .pip { grid-row: 1; }
     .rail .t { grid-column: 2; grid-row: 1; margin-top: 0; }
     .rail .d { grid-column: 2; grid-row: 2; margin-top: 0; padding-right: 0; }
+    /* On a phone the five stages would take three lines; the one in hand is enough. */
+    .stages li:not(.on):not(.bad) { display: none; }
+    .topbar-row { flex-wrap: nowrap; gap: .6rem; }
+    .topbar-step { flex-basis: 0; }
+    .topbar[data-state="done"] .stages li:last-child { display: inline-flex; }
     .card-head { padding: .85rem 1rem; }
     .card-body { padding: 1.1rem 1rem; }
     .ctl { max-width: none; }
@@ -381,6 +424,25 @@
 </style>
 </head>
 <body>
+
+<!-- Where a build is, and how far it has got. Hidden until one is followed; then it stays at the
+     top of the window however far down the page the reader is. -->
+<div class="topbar hidden" id="topbar" data-state="working">
+  <div class="topbar-track" id="topbar_bar" role="progressbar" aria-label="How far the build has got"
+       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="topbar-fill" id="topbar_fill"></div></div>
+  <div class="wrap topbar-row">
+    <ol class="stages" id="stages">
+      <li><span class="tick"></span>Requested</li>
+      <li><span class="tick"></span>Accepted</li>
+      <li><span class="tick"></span>Queued</li>
+      <li><span class="tick"></span>Building</li>
+      <li><span class="tick"></span>Image ready</li>
+    </ol>
+    <span class="topbar-step" id="topbar_step"></span>
+    <span class="topbar-num" id="topbar_pct"></span>
+    <span class="topbar-num" id="topbar_clock"></span>
+  </div>
+</div>
 
 <header class="hero">
   <div class="wrap">
@@ -571,12 +633,15 @@
           </div>
           <div class="card-body">
             <div class="field">
-              <label for="project_ref">os-xgs-npu commit, tag or branch</label>
+              <label for="project_ref">os-xgs-npu release, commit, tag or branch</label>
               <div class="ctl">
-                <input type="text" id="project_ref" name="project_ref" value="main" spellcheck="false"
+                <input type="text" id="project_ref" name="project_ref" value="latest" spellcheck="false"
                        autocapitalize="off" autocorrect="off" aria-describedby="ref_hint">
               </div>
-              <p class="note" id="ref_hint">Leave this as <code>main</code> unless you know why not.
+              <p class="note" id="ref_hint">Leave this as <code>latest</code> - the project's newest
+              <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases">release</a>, the one an
+              appliance's Updates page offers - unless you know why not; <code>main</code> is
+              everything merged, released or not.
               The <strong>source</strong> is placed in the image; a <strong>built module is
               not</strong>, because a module has to be compiled against the kernel the appliance is
               actually running.</p>
@@ -703,7 +768,8 @@
         <code>https://192.168.100.1</code> from the management port, and log in as
         <code>root</code> / <code>opnsense</code> - then change that password. The management port
         you installed through answers on 192.168.100.1 from this boot on, not on 192.168.1.1.</li>
-        <li><strong>Updates:</strong> the driver from System - Firmware - XGS Coprocessor; the
+        <li><strong>Updates:</strong> the driver from <del>System - Firmware - XGS Coprocessor</del>
+        XGS Coprocessor - Updates, which offers its releases; the
         translation, the layout and the plugins follow their own releases by themselves, once a
         day.</li>
       </ol>
@@ -979,7 +1045,12 @@
 
   function say(state, headline, detail, err, runningSince) {
     live.setAttribute("data-state", state);
+    /* The clock runs only while something is happening. A build that made its image gets the
+       time it took put back by artifact(), from the upload's own stamp. */
     clock(state === "working" ? runningSince : null);
+    if (state !== "working" && topbar.className.indexOf("hidden") < 0) {
+      progress(state === "done" ? 4 : lastStage, state === "done" ? 100 : lastPct, headline, state);
+    }
     liveState.textContent = headline;
     liveDetail.textContent = detail || "";
     liveErr.textContent = err || "";
@@ -988,33 +1059,152 @@
     show(id("actions"), false);
   }
 
-  function since(startedAt) {
-    var s = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  function dur(ms) {
+    var s = Math.max(0, Math.round(ms / 1000));
     var m = Math.floor(s / 60);
     return m ? m + "m " + (s % 60) + "s" : s + "s";
   }
+  function since(startedAt) { return dur(Date.now() - startedAt); }
 
   /* The counter ticks on its own rather than on each poll. Polls are twenty seconds apart at best
      and two minutes apart at worst, and a number that sits still for two minutes reads as a page
      that has stopped. */
   var liveClock = id("live_clock"), ticking = null;
 
+  function showTime(ms, unit) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var mm = Math.floor(s / 60), ss = s % 60;
+    var text = mm ? mm + ":" + (ss < 10 ? "0" : "") + ss : ss + "";
+    liveClock.textContent = "";
+    liveClock.appendChild(document.createTextNode(text));
+    liveClock.appendChild(document.createElement("span")).className = "unit";
+    liveClock.lastChild.textContent = unit || (mm ? "elapsed" : "seconds");
+    topClock.textContent = mm ? text : "0:" + (ss < 10 ? "0" : "") + ss;
+  }
+
   function clock(startedAt) {
     stopClock();
-    if (!startedAt) { liveClock.textContent = ""; return; }
-    function tick() {
-      var s = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
-      var mm = Math.floor(s / 60), ss = s % 60;
-      liveClock.textContent = "";
-      liveClock.appendChild(document.createTextNode(
-        mm ? mm + ":" + (ss < 10 ? "0" : "") + ss : ss + ""));
-      liveClock.appendChild(document.createElement("span")).className = "unit";
-      liveClock.lastChild.textContent = mm ? "elapsed" : "seconds";
-    }
+    if (!startedAt) { liveClock.textContent = ""; topClock.textContent = ""; return; }
+    function tick() { showTime(Date.now() - startedAt); }
     tick();
     ticking = setInterval(tick, 1000);
   }
   function stopClock() { if (ticking) { clearInterval(ticking); ticking = null; } }
+
+  /* --- the bar at the top: where the build is, and how far -------------------------------------
+     Five stages, the same on both routes: requested, accepted, queued, building, image ready.
+     Inside "building" the bar moves with the build's own steps, each weighted by how long it took
+     in the last build that succeeded - the step in the FreeBSD guest is nine minutes of ten, so a
+     bar that counted steps would sit near the end for almost the whole wait.
+
+     And it ends when the image exists: when the step that uploads it has finished - not when the
+     run has tidied up after it, not when the request is closed, and not whenever the next poll
+     happens to look, which can be two minutes later. The time shown is taken from that step's own
+     completion stamp. */
+  var topbar = id("topbar"), topFill = id("topbar_fill"), topTrack = id("topbar_bar");
+  var topStep = id("topbar_step"), topPct = id("topbar_pct"), topClock = id("topbar_clock");
+  var lastStage = 0, lastPct = 0;
+
+  function progress(stage, pct, text, state) {
+    state = state || "working";
+    pct = Math.max(0, Math.min(100, Math.round(pct)));
+    /* An estimate may come out lower at the next poll; the bar does not go backwards for it. */
+    if (state === "working" && stage === lastStage) { pct = Math.max(pct, lastPct); }
+    lastStage = stage; lastPct = pct;
+    topbar.setAttribute("data-state", state);
+    var lis = id("stages").children;
+    for (var i = 0; i < lis.length; i++) {
+      lis[i].className = (state === "done" || i < stage) ? "done"
+                       : (i === stage ? (state === "failed" ? "bad" : "on") : "");
+    }
+    topFill.style.width = pct + "%";
+    topTrack.setAttribute("aria-valuenow", String(pct));
+    topTrack.setAttribute("aria-valuetext", pct + "% - " + (text || ""));
+    topPct.textContent = pct + "%";
+    topStep.textContent = text || "";
+    show(topbar, true);
+    rail(state === "done" ? 4 : 2);
+  }
+
+  /* The three steps in the header follow along: configured, started, and the download. */
+  function rail(n) {
+    var lis = document.querySelectorAll(".rail li");
+    for (var i = 0; i < lis.length; i++) {
+      lis[i].className = i < n - 1 ? "done" : (i === n - 1 ? "on" : "");
+    }
+  }
+
+  /* How long each step took in the last build that succeeded, read once and kept for a day. Until
+     it arrives - or if it never does - every step weighs the same. */
+  var LS_STEPS = "xgs.steps";
+  /* The build of 2026-10-16, for when the last good build cannot be read: the guest is the build. */
+  var STEPS_SEEN = { "Set up job": 4, "Fetch os-xgs-npu": 2, "Fetch the components": 3,
+                     "Inject, in a FreeBSD guest": 529, "Run actions/upload-artifact@v4": 17 };
+  var weights = null;
+
+  /* Calls then() once the weights are known - read, kept, or the ones above - so the first figure
+     the bar shows is already the right one, rather than one that jumps back at the next poll. */
+  function loadWeights(token, target, then) {
+    if (weights) { then(); return; }
+    try {
+      var kept = JSON.parse(recall(LS_STEPS) || "null");
+      if (kept && kept.repo === target && Date.now() - kept.at < 86400000) {
+        weights = kept.steps; then(); return;
+      }
+    } catch (e) { /* read it again */ }
+    function fallback() { if (!weights) { weights = STEPS_SEEN; } then(); }
+    api("/repos/" + target + "/actions/workflows/build.yml/runs?status=success&per_page=1", { token: token })
+      .then(function (res) {
+        var run = res.status === 200 && res.data && res.data.workflow_runs && res.data.workflow_runs[0];
+        if (!run) { fallback(); return; }
+        api("/repos/" + target + "/actions/runs/" + run.id + "/jobs", { token: token }).then(function (jr) {
+          var job = jr.status === 200 && jr.data && jr.data.jobs && jr.data.jobs[0];
+          var w = {}, n = 0;
+          ((job && job.steps) || []).forEach(function (s) {
+            if (s.started_at && s.completed_at) {
+              w[s.name] = Math.max(1, (Date.parse(s.completed_at) - Date.parse(s.started_at)) / 1000);
+              n++;
+            }
+          });
+          if (n) {
+            weights = w;
+            store(LS_STEPS, JSON.stringify({ repo: target, at: Date.now(), steps: w }));
+          }
+          fallback();
+        }, fallback);
+      }, fallback);
+  }
+
+  /* What follows the upload is the runner tidying up after an image that already exists. */
+  function counts(name) { return !/^(Post |Complete job)/.test(name); }
+  function isUpload(name) { return /upload-artifact/.test(name); }
+
+  /* The share of the build done, the step in hand, and the seconds the last good build took for
+     what is left - so the page can look again just as the image should appear. */
+  function building(steps) {
+    var known = 0, n = 0, total = 0, got = 0, left = 0, now = Date.now(), current = "", k = 0;
+    Object.keys(weights || {}).forEach(function (name) {
+      if (counts(name)) { known += weights[name]; n++; }
+    });
+    var listed = steps.filter(function (s) { return counts(s.name); });
+    n = Math.max(n, listed.length);
+    listed.forEach(function (s, i) {
+      var w = (weights && weights[s.name]) || 2;
+      total += w;
+      if (s.status === "completed") { got += w; return; }
+      if (s.status === "in_progress") {
+        var spent = s.started_at ? Math.max(0, (now - Date.parse(s.started_at)) / 1000) : 0;
+        got += Math.min(w * 0.95, spent);
+        left += Math.max(0, w - spent);
+        current = s.name; k = i + 1;
+        return;
+      }
+      left += w;
+    });
+    total = Math.max(total, known);
+    return { share: total ? got / total : 0, left: left,
+             text: current ? current + " - step " + k + " of " + n : "" };
+  }
 
   function stopWatching() {
     if (watching) { clearTimeout(watching); watching = null; }
@@ -1026,8 +1216,12 @@
     stopWatching();
     stopClock();
     liveClock.textContent = "";
+    topClock.textContent = "";
     liveLog.textContent = LOG_LABEL;
     store(LS_RUN, null);
+    show(topbar, false);
+    rail(1);
+    lastStage = 0; lastPct = 0;
     show(liveCard, false);
     show(id("actions"), true);
     [liveDl, liveLog, liveClear].forEach(function (b) { show(b, false); });
@@ -1070,6 +1264,7 @@
           say("working", "Waiting for you",
               "Press \u201cSubmit new issue\u201d in the GitHub tab. Nothing is built until you "
               + "do - this page keeps watching.", "", startedAt);
+          progress(0, 2, "Waiting for “Submit new issue” in the GitHub tab");
           watching = setTimeout(function () { watchIssue(buildId, startedAt, null); },
                                 elapsed < 60000 ? 6000 : 20000);
         }, function () { return anonUnreachable(startedAt); });
@@ -1091,6 +1286,7 @@
                    : (said.indexOf("Nothing was built") === 0 ? "declined" : "malformed"));
           if (kind === "started") {
             say("working", "Queued", "The request was accepted. Waiting for the run.", "", startedAt);
+            progress(2, 8, "Accepted - waiting for GitHub to start the run");
             findRun(null, buildId, startedAt, "run");
             return;
           }
@@ -1109,6 +1305,7 @@
         }
         say("working", "Filed", "The request is in. Waiting for this repository to answer it.",
             "", startedAt);
+        progress(1, 5, "Filed as #" + issueNumber + " - waiting for this repository to answer it");
         watching = setTimeout(function () { watchIssue(buildId, startedAt, issueNumber); },
                               elapsed < 120000 ? 6000 : 20000);
       }, function () { return anonUnreachable(startedAt); });
@@ -1179,8 +1376,10 @@
               "Press " + String.fromCharCode(8220) + "Submit new issue" + String.fromCharCode(8221)
               + " in the GitHub tab. Nothing is built until you do - this page keeps watching.",
               "", startedAt);
+          progress(0, 2, "Waiting for “Submit new issue” in the GitHub tab");
         } else {
           say("working", "Queued", "Waiting for GitHub to start the run.", "", startedAt);
+          progress(2, 8, "Waiting for GitHub to start the run");
         }
         watching = setTimeout(function () { findRun(token, buildId, startedAt, waitingFor, target); },
                               gap(token, elapsed));
@@ -1192,12 +1391,47 @@
   }
 
   /* --- watch it, then hand over the artifact ------------------------ */
+  /* The job is read first, because the job carries the steps: which one is running, and whether
+     the one that uploads the image has finished. The run is read only when the job says nothing
+     - before it has started, and once it has ended without an image. */
   function watchRun(token, runId, startedAt, target) {
     target = target || repo;
     store(LS_RUN, JSON.stringify({ repo: target, id: runId, at: startedAt }));
     liveLog.href = "https://github.com/" + target + "/actions/runs/" + runId;
     show(liveLog, true);
+    if (!weights) {
+      loadWeights(token, target, function () { watchRun(token, runId, startedAt, target); });
+      return;
+    }
 
+    api("/repos/" + target + "/actions/runs/" + runId + "/jobs", { token: token }).then(function (jr) {
+      var job = jr.status === 200 && jr.data && jr.data.jobs && jr.data.jobs[0];
+      var steps = (job && job.steps) || [];
+      var up = steps.filter(function (s) { return isUpload(s.name); })[0];
+      if (up && up.status === "completed" && up.conclusion === "success") {
+        /* The image exists. What is left of the run is the runner tidying up. */
+        artifact(token, runId, startedAt, target, up.completed_at ? Date.parse(up.completed_at) : null, 0);
+        return;
+      }
+      if (!job || job.status !== "in_progress") { runState(token, runId, startedAt, target); return; }
+      var b = building(steps);
+      say("working", "Building",
+          "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
+          + "recompressed.", "", startedAt);
+      progress(3, 10 + 88 * b.share, b.text || "Building");
+      /* Look again sooner when the last good build says the image is about due. */
+      var wait = gap(token, Date.now() - startedAt);
+      if (weights && Object.keys(weights).length && b.left * 1000 < wait) {
+        wait = Math.max(10000, b.left * 1000 + 5000);
+      }
+      watching = setTimeout(function () { watchRun(token, runId, startedAt, target); }, wait);
+    }, function () {
+      say("working", "Waiting", "Could not reach GitHub just now - trying again.", "", startedAt);
+      watching = setTimeout(function () { watchRun(token, runId, startedAt, target); }, 20000);
+    });
+  }
+
+  function runState(token, runId, startedAt, target) {
     api("/repos/" + target + "/actions/runs/" + runId, { token: token }).then(function (res) {
       if (res.status !== 200) {
         say("failed", "Lost track of the run", "", explain(res, "read Actions"));
@@ -1209,6 +1443,8 @@
         say("working", run.status === "in_progress" ? "Building" : "Queued",
             "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
             + "recompressed.", "", startedAt);
+        if (run.status === "in_progress") { progress(3, Math.max(lastPct, 10), "Building"); }
+        else { progress(2, 8, "Queued - waiting for a runner"); }
         watching = setTimeout(function () { watchRun(token, runId, startedAt, target); },
                               gap(token, Date.now() - startedAt));
         return;
@@ -1233,37 +1469,51 @@
         show(liveClear, true);
         return;
       }
-      artifact(token, runId, startedAt, target);
+      artifact(token, runId, startedAt, target, null, 0);
     }, function () {
       say("working", "Waiting", "Could not reach GitHub just now - trying again.", "", startedAt);
       watching = setTimeout(function () { watchRun(token, runId, startedAt, target); }, 20000);
     });
   }
 
-  function artifact(token, runId, startedAt, target) {
+  /* madeAt is when the upload step finished, from GitHub's own stamp; the clock stops there. An
+     artifact can take a few seconds to be listed after its upload, so an empty list straight after
+     the step is asked again before it is believed. */
+  function artifact(token, runId, startedAt, target, madeAt, tries) {
     target = target || repo;
+    var took = (madeAt || Date.now()) - startedAt;
     api("/repos/" + target + "/actions/runs/" + runId + "/artifacts", { token: token })
       .then(function (res) {
         var list = (res.data && res.data.artifacts) || [];
+        if (res.status === 200 && !list.length && madeAt && tries < 3) {
+          watching = setTimeout(function () {
+            artifact(token, runId, startedAt, target, madeAt, tries + 1);
+          }, 5000);
+          return;
+        }
         if (res.status !== 200 || !list.length) {
           say("done", "Built, but no artifact",
-              "The run succeeded in " + since(startedAt) + " and GitHub lists no artifact on it.",
+              "The run made its image in " + dur(took) + " and GitHub lists no artifact on it.",
               res.status !== 200 ? explain(res, "read Actions") : "");
+          showTime(took, "to build");
           show(liveClear, true);
           return;
         }
         var a = list[0];
         var mb = (a.size_in_bytes / (1024 * 1024)).toFixed(0);
         say("done", "Ready",
-            a.name + " - " + mb + " MB, built in " + since(startedAt)
+            a.name + " - " + mb + " MB, built in " + dur(took)
             + ". It expires in seven days. It has not been booted on an appliance.");
+        progress(4, 100, "The image is ready - " + a.name, "done");
+        showTime(took, "to build");
         /* The signed download URL the API returns cannot be followed from a page, so this is the
            link GitHub's own UI uses: it works in a browser that is signed in to GitHub. */
         liveDl.href = "https://github.com/" + target + "/actions/runs/" + runId
                     + "/artifacts/" + a.id;
         show(liveDl, true); show(liveClear, true);
       }, function () {
-        say("done", "Built", "The run succeeded. Open it to pick up the artifact.");
+        say("done", "Built", "The image was made. Open the run to pick up the artifact.");
+        showTime(took, "to build");
         show(liveClear, true);
       });
   }
@@ -1379,9 +1629,11 @@
     stopWatching();
     liveLog.textContent = LOG_LABEL;
     say("working", "Starting", "Asking GitHub who you are.", "", startedAt);
+    progress(0, 2, "Asking GitHub who you are");
 
     fork(token, repo, function (target) {
       say("working", "Starting the build", "In " + target + ".", "", startedAt);
+      progress(0, 4, "Starting the build in " + target);
       liveLog.href = "https://github.com/" + target + "/actions/workflows/build.yml";
 
       api("/repos/" + target, { token: token }).then(function (info) {
@@ -1394,6 +1646,7 @@
               show(liveLog, true); show(liveClear, true);
               return;
             }
+            progress(2, 8, "Accepted - waiting for GitHub to start the run");
             findRun(token, buildId, startedAt, "run", target);
           }, function () {
             say("failed", "Could not reach GitHub",

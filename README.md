@@ -1,11 +1,57 @@
-# xgs-image-builder
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/banner-light.svg">
+  <img src="docs/images/banner-light.svg" alt="xgs-image-builder - an OPNsense image for a Sophos XGS, with everything inside" width="100%">
+</picture>
+
+> **⚠ WORK IN PROGRESS, 2026-10-14: the XGS 136's driver, hooks and hardware support are being integrated into the driver project and its plugins right now. Nothing here is advised for any use or any test on either appliance - the XGS 136 or the XGS 3300 - until the integration and its testing are finished and this notice is removed.** The same notice heads the [driver project](https://github.com/AbdelmonemAwad/os-xgs-npu#readme) and the build page, and it comes off here when it comes off there.
+
+<p align="center">
+  <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml"><img alt="checks: the page, the request parser, the workflows" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml/badge.svg"></a>
+  <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml"><img alt="the last image built" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml/badge.svg"></a>
+  <br>
+  <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases"><img alt="installs os-xgs-npu's newest release" src="https://img.shields.io/github/v/release/AbdelmonemAwad/os-xgs-npu?include_prereleases&amp;sort=semver&amp;style=flat-square&amp;label=installs%20os-xgs-npu&amp;color=8250df"></a>
+  <a href="#why-only-267-in-the-release-list"><img alt="OPNsense 26.7, FreeBSD 15" src="https://img.shields.io/badge/OPNsense-26.7%20%C2%B7%20FreeBSD%2015-d94f00.svg?style=flat-square"></a>
+  <a href="#what-is-in-the-image"><img alt="in the image: the driver, four plugins, Arabic and right to left" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%204%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL-555555.svg?style=flat-square"></a>
+  <a href="#status"><img alt="booted: one image, on an XGS 3300" src="https://img.shields.io/badge/booted-one%20image%2C%20on%20an%20XGS%203300-yellow.svg?style=flat-square"></a>
+  <a href="#why-it-works-this-way"><img alt="the artifact is kept seven days, then it is gone" src="https://img.shields.io/badge/artifact-kept%207%20days%2C%20then%20gone-555555.svg?style=flat-square"></a>
+  <a href="LICENSE"><img alt="licence: BSD-2-Clause" src="https://img.shields.io/badge/licence-BSD--2--Clause-blue.svg?style=flat-square"></a>
+</p>
 
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it, and
 the Arabic translation, the right-to-left layout and four appliance plugins beside it.
 
-**[Open the build page](https://abdelmonemawad.github.io/xgs-image-builder/)** - pick the OPNsense
-release, the image type and the console speed, and start the build. Nothing to install.
+<p align="center"><a href="https://abdelmonemawad.github.io/xgs-image-builder/"><b>Open the build page</b></a> - pick the OPNsense release, the image type and the console speed, and start the build. Nothing to install.</p>
+
+## The two appliances it builds for
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AbdelmonemAwad/os-xgs-npu/main/docs/images/readme/status-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/AbdelmonemAwad/os-xgs-npu/main/docs/images/readme/status-light.svg">
+  <img src="https://raw.githubusercontent.com/AbdelmonemAwad/os-xgs-npu/main/docs/images/readme/status-light.svg" alt="os-xgs-npu status: the stage it is at, one card per appliance with every feature, what has been measured on it and its weighted completion, the families without hardware, and the figures that keep it honest" width="100%">
+</picture>
+
+*Read from [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu), not copied, so it is that
+project's board as it stands today: one card per appliance, the same rows on both - every feature,
+what has been measured, and how far along it is
+([side by side](https://github.com/AbdelmonemAwad/os-xgs-npu/blob/main/docs/families/parity.md)).
+An image built here installs that project's newest release, so it carries what the board shows.*
+
+## At a glance
+
+- **Nothing to install.** One static page - every style and line of script in one file - that fills
+  in a build request, follows it, and hands over the image.
+- **The official image underneath.** Fetched from OPNsense's own mirror at build time and verified;
+  this repository holds no part of it.
+- **The driver's newest release.** `latest` by default: the version every appliance's Updates page
+  offers, so an image starts where an update would take it - not on whatever was merged last.
+- **Everything at the first boot.** The driver built against the kernel the appliance runs, the
+  Arabic translation and the right-to-left layout, four plugins, and the front panel's where there
+  is a panel - each keeping itself across OPNsense updates.
+- **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
+  queued, building step by step, image ready - and its clock stops the moment the image exists.
+- **Nothing kept.** The image is an artifact of your own run, and it expires in seven days.
 
 That link is this repository's own page, and a build only runs for the account that owns the
 repository it runs in. So it is the one to read; it is not the one to build from. For an image of
@@ -27,8 +73,8 @@ page is live once Pages is turned on for that repository - step 2 below.
    it runs in.
 2. **Turn on Pages for your fork** - Settings -> Pages -> source: branch `main`, folder `/docs`.
 3. Open your fork's **build page** and choose from the dropdowns: the OPNsense release, the image
-   type, the console speed, whether the console is serial-only, and which commit of the driver
-   project to install. Press the button; it fills in a build request and you submit it. A workflow
+   type, the console speed, whether the console is serial-only, and which version of the driver
+   project to install - `latest`, its newest release, unless you know why not. Press the button; it fills in a build request and you submit it. A workflow
    picks it up and starts the build.
 
    Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
@@ -140,11 +186,13 @@ the layout and the plugins' strings live in, and an update that only installs pa
 reboot. So each installs a pkg trigger, which pkg runs the moment an update writes into those
 directories, and a boot hook - in its own repository, where the change belongs.
 
-**And each keeps itself up to date.** The driver from System - Firmware - XGS Coprocessor, the
-others by themselves once a day from their own repository's latest release. Both move only
-forward from what is installed, which they read from the commit this builder writes into each tree
-as `.source-commit` (the driver's as `.image-build`): with `.git` removed from the image that is the
-only record of it, and without it a release older than the image would be taken.
+**And each keeps itself up to date.** The driver from ~~System - Firmware - XGS Coprocessor~~
+**XGS Coprocessor - Updates**, which offers the project's releases (since 2026-10-18), the others by
+themselves once a day from their own repository's latest release. Both move only forward from what
+is installed, which they read from the commit this builder writes into each tree as `.source-commit`
+(the driver's as `.image-build`, with the release's tag beside the commit when a release was
+installed): with `.git` removed from the image that is the only record of it, and without it a
+release older than the image would be taken.
 
 ## Why only 26.7 in the release list
 
@@ -173,3 +221,12 @@ Nothing here is finished. See the issues.
   at both ends of a tunnel, jumbo frames through the switch chip, the MTU from 576 to 9000 - is in
   its [measurements](https://github.com/AbdelmonemAwad/os-xgs-npu/tree/main/docs/measurements);
   an image built here installs that project, so it carries all of it.
+
+## ⚖️ Licence
+
+**BSD-2-Clause** - [LICENSE](LICENSE) is the whole of it.
+
+Copyright &copy; 2026 Abdelmonem Awad. **OPNsense&reg;** is a registered trademark of Deciso B.V.;
+**Sophos&reg;** and **XGS** are trademarks of Sophos Ltd. This project is independent: it is not
+affiliated with, endorsed by or sponsored by either, and their names are used only to say what an
+image built here is made from and runs on.

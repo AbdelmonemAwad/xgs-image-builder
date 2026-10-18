@@ -400,6 +400,54 @@ for (const [conclusion, want] of [
   await c.close();
 }
 
+// --------------- 4a. the image is handed over when it is made, not when the run has finished
+// The run is still in progress - its runner is tidying up - but the upload step is done, so the
+// page has to say Ready, stop the clock at the upload's own stamp, and fill the bar at the top.
+{
+  let bid = null, runCalls = 0;
+  const t0 = Date.now();
+  const iso = ms => new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z');
+  const { p, c, seen } = await page((req) => {
+    const u = req.url();
+    if (u.endsWith('/user')) return { status: 200, body: { login: 'someone' } };
+    if (req.method() === 'POST' && u.includes('/dispatches')) return { status: 204 };
+    if (u.endsWith('/repos/someone/my-fork')) return { status: 200, body: { default_branch: 'main' } };
+    if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs: [
+      { id: 6, name: '26.7 serial ' + bid, display_title: '26.7 serial ' + bid }] } };
+    if (/\/actions\/runs\/6\/jobs$/.test(u)) return { status: 200, body: { jobs: [{ status: 'in_progress', steps: [
+      { number: 1, name: 'Set up job', status: 'completed', conclusion: 'success', started_at: iso(t0), completed_at: iso(t0 + 1000) },
+      { number: 8, name: 'Inject, in a FreeBSD guest', status: 'completed', conclusion: 'success', started_at: iso(t0 + 1000), completed_at: iso(t0 + 2000) },
+      { number: 10, name: 'Run actions/upload-artifact@v4', status: 'completed', conclusion: 'success', started_at: iso(t0 + 2000), completed_at: iso(t0 + 3000) },
+      { number: 20, name: 'Post Run actions/checkout@v4', status: 'in_progress', started_at: iso(t0 + 3000) }] }] } };
+    if (/\/actions\/runs\/6$/.test(u)) { runCalls++; return { status: 200, body: { status: 'in_progress' } }; }
+    if (u.includes('/runs/6/artifacts')) return { status: 200, body: { artifacts: [
+      { id: 61, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
+    return { status: 404, body: { message: 'unexpected ' + u } };
+  });
+  await openToken(p);
+  await p.fill('#token', 'github_pat_test');
+  const [req] = await Promise.all([ p.waitForRequest(r => r.method() === 'POST'), p.click('#build') ]);
+  bid = JSON.parse(req.postData()).inputs.build_id;
+  await p.waitForFunction(() => document.getElementById('live').getAttribute('data-state') === 'done', null, { timeout: 60000 });
+  const v = await live(p);
+  check('Ready while the run is still tidying up', v.head === 'Ready' && v.dl === 'https://github.com/someone/my-fork/actions/runs/6/artifacts/61', JSON.stringify(v));
+  check('it never waited for the run to finish', runCalls === 0, runCalls + ' run reads');
+  const top = await p.evaluate(() => ({
+    shown: !document.getElementById('topbar').className.includes('hidden'),
+    state: document.getElementById('topbar').getAttribute('data-state'),
+    pct: document.getElementById('topbar_bar').getAttribute('aria-valuenow'),
+    done: [...document.querySelectorAll('#stages li')].every(li => li.className === 'done'),
+    clock: document.getElementById('topbar_clock').textContent,
+  }));
+  check('the bar at the top is full and done', top.shown && top.state === 'done' && top.pct === '100' && top.done, JSON.stringify(top));
+  await p.waitForTimeout(2500);
+  const later = await live(p);
+  check('the clock has stopped', later.clock === v.clock && v.clock.includes('to build'), v.clock + ' then ' + later.clock);
+  await p.click('#live_clear');
+  check('"Start another" takes the bar away', await p.evaluate(() => document.getElementById('topbar').className.includes('hidden')), 'still shown');
+  await c.close();
+}
+
 // ---------------------------------------------------------------- 5. token memory
 {
   const c = await b.newContext({ viewport: { width: 1280, height: 1000 } });
