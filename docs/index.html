@@ -251,6 +251,8 @@
   .call a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .call.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn); }
   .call.stop { background: var(--stop-bg); border-color: var(--stop-edge); color: var(--stop); }
+  .call.info { background: var(--brand-tint); border-color: var(--brand-edge); color: var(--ink); }
+  .call.info svg { color: var(--brand); }
   .call.hide { display: none; }
 
   /* The installation steps, a plain numbered list in a card. */
@@ -499,19 +501,18 @@
     <div class="cols">
 
       <div>
-        <!-- TEMPORARY: the notice at the top of os-xgs-npu's README, word for word. It comes off this
-             page when it comes off that one - when the XGS 136's integration and its testing are
-             finished. -->
-        <div class="call stop" id="wip_note">
+        <!-- The note at the top of os-xgs-npu's README, in the page's words. It replaced that
+             project's work-in-progress notice on 2026-10-18, and changes when that one does. -->
+        <div class="call info" id="status_note">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4m0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 6.5a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4A.75.75 0 0 1 8 6.5M8 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
           </svg>
-          <span><strong>WORK IN PROGRESS, 2026-10-14: the XGS 136's driver, hooks and hardware
-          support are being integrated into this repository and its plugins right now. Nothing here
-          is advised for any use or any test on either appliance - the XGS 136 or the XGS 3300 -
-          until the integration and its testing are finished and this notice is removed.</strong>
-          The same notice heads the <a href="https://github.com/AbdelmonemAwad/os-xgs-npu#readme">driver
-          project</a>, and it comes off this page when it comes off that one.</span>
+          <span><strong>Still being completed.</strong> The main part of the work is done. Some
+          functions are being improved, and the XGS-specific integration is being completed where
+          something is still missing - each gap is listed in the
+          <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/blob/main/docs/families/parity.md">driver
+          project</a> - and it all arrives as updates, through its releases. An image built here
+          installs the newest release.</span>
         </div>
 
         <div class="call warn">
@@ -728,8 +729,9 @@
     </div>
   </form>
 
-  <!-- TEMPORARY, with the notice above: how the image goes onto an appliance, until the README
-       of the driver project carries it and the integration is finished. -->
+  <!-- How the image goes onto an appliance. It began as a temporary card beside the driver project's
+       work-in-progress notice; the notice came off on 2026-10-18 and the steps stay, because they are
+       the one place that says how an image is installed. -->
   <section class="card install" id="install_steps">
     <div class="card-head"><h2>Installing the image</h2></div>
     <div class="card-body">
