@@ -1,0 +1,48 @@
+#-
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 Abdelmonem Awad <eg2@live.com>
+#
+name: Something does not work
+description: A build that fails, or an image that does not boot or does not work.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A build request is not this form: the [build page](https://abdelmonemawad.github.io/xgs-image-builder/) files those. This one is for a build that failed or an image that misbehaves. Take out addresses, MAC addresses and serial numbers before pasting.
+  - type: dropdown
+    id: appliance
+    attributes:
+      label: Appliance
+      options:
+        - Sophos XGS 136
+        - Sophos XGS 3300
+        - Sophos XG (an older model)
+        - Another machine
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The image options and the run's link, or the version installed - and the OPNsense version.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      description: The steps, if you know them. "It happened once" is an answer too.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: The lines around the time, cleaned first.
+      render: text
