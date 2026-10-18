@@ -47,3 +47,10 @@ own PCI id and exits cleanly when its hardware is absent. Note that a PCI id ide
 **No prebuilt module in the image.** A module built against a different kernel **loads silently**,
 so an image carrying one is broken by the first kernel update. Ship the sources, the boot hooks and
 `kernel-follow.sh`, and let the appliance build it on first boot.
+
+## Conduct, vulnerabilities and questions
+
+Everyone here is held to the [Code of Conduct](CODE_OF_CONDUCT.md). A vulnerability goes to the
+address in [SECURITY.md](SECURITY.md), not into an issue. A problem or an idea goes into an issue
+through its form, a pull request through its template, and a question into the project's
+[Discussions](https://github.com/AbdelmonemAwad/os-xgs-npu/discussions).
