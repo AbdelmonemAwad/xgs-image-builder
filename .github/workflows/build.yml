@@ -48,10 +48,12 @@ on:
         type: choice
         default: 'no'
         options: [ 'no', 'yes' ]
+      # latest is the project's newest release - what every appliance's Updates page offers - so
+      # an image starts where an update would take it. A commit, tag or branch still works.
       project_ref:
-        description: 'os-xgs-npu commit, tag or branch to install'
+        description: 'os-xgs-npu to install: latest (the newest release), or a commit, tag or branch'
         type: string
-        default: 'main'
+        default: 'latest'
       build_id:
         description: 'Left empty here. The build page fills it in so it can find this run again.'
         type: string
