@@ -28,11 +28,11 @@
 # NO PREBUILT MODULE. A module built against a different kernel in the same branch loads without
 # complaining and then reads structures at the wrong offsets. Sources only.
 #
-# AND THE COMPONENTS: the Arabic translation, the right-to-left layout and the four plugins, each
-# fetched from its own repository by fetch-components.sh, and the package files of lcdproc, which
-# the front panel plugin needs and which is fetched here, for this image, because on an XGS 3300
-# there is no network at first boot until the driver exists. All of it is installed by the
-# first-boot hook at the end of this file, in an order that matters; the hook says why.
+# AND THE COMPONENTS: the Arabic translation, the right-to-left layout, the XGS Silicon theme and the
+# four plugins, each fetched from its own repository by fetch-components.sh, and the package files of
+# lcdproc, which the front panel plugin needs and which is fetched here, for this image, because on
+# an XGS 3300 there is no network at first boot until the driver exists. All of it is installed by
+# the first-boot hook at the end of this file, in an order that matters; the hook says why.
 #
 # The front panel plugin, and the LCDproc it needs, go in only when the build was told the
 # appliance has a front panel - the last argument, the build page's "Front panel".
@@ -400,15 +400,20 @@ cat > "${HOOKDIR}/00-xgs-image-firstboot" <<'HOOK'
 #                       catalog it installs and skip a language whose catalog is not there, and
 #                       its installer writes the catalog over anything added before it.
 #   4. opnsense-rtl     the right-to-left layout.
-#   5. the plugins      os-netreport, os-linkhealth, os-fanctl, and os-frontpanel when the image was
+#   5. os-theme-xgs     the XGS Silicon theme, after the layout: its installer has the layout mirror
+#                       it at once, so Arabic has it from the first page. Then it is the GUI's theme -
+#                       xgs-auto, light or dark as the browser's own setting says - which the owner
+#                       changes in System: Settings: General like any theme.
+#   6. the plugins      os-netreport, os-linkhealth, os-fanctl, and os-frontpanel when the image was
 #                       built with a front panel (the build page's "Front panel").
-#   6. turning them on  install/enable.sh, where a plugin has one. os-netreport and os-linkhealth
+#   7. turning them on  install/enable.sh, where a plugin has one. os-netreport and os-linkhealth
 #                       are on as installed. os-fanctl comes on in its watch-only mode, which never
 #                       writes to a fan chip. os-frontpanel comes on only where the plugin's own
 #                       table has an entry for this model that was confirmed on the hardware;
 #                       anywhere else it stays off and the log says why.
 #
 # The GUI language is not touched: it stays English, OPNsense's default, with Arabic in the list.
+# The GUI theme is: xgs-auto (step 5).
 #
 # Each piece keeps itself across OPNsense updates from then on - a pkg trigger and a boot hook of
 # its own, installed by its own installer. This hook is only the first install.
@@ -463,12 +468,20 @@ for c in opnsense-arabic opnsense-rtl; do
     [ -f "${COMP}/${c}/install.sh" ] && step "${c}" /bin/sh "${COMP}/${c}/install.sh"
 done
 
-# 5. The plugins; os-frontpanel is here only when the image was built with a front panel.
+# 5. The theme, then the GUI's theme set to it.
+if [ -f "${COMP}/os-theme-xgs/install/install.sh" ]; then
+    step os-theme-xgs /bin/sh "${COMP}/os-theme-xgs/install/install.sh"
+    if [ -f "${DONE}/os-theme-xgs" ]; then
+        step os-theme-xgs-enabled /bin/sh "${COMP}/os-theme-xgs/install/enable.sh" xgs-auto
+    fi
+fi
+
+# 6. The plugins; os-frontpanel is here only when the image was built with a front panel.
 for c in os-netreport os-linkhealth os-fanctl os-frontpanel; do
     [ -f "${COMP}/${c}/install/install.sh" ] && step "${c}" /bin/sh "${COMP}/${c}/install/install.sh"
 done
 
-# 6. On, where a plugin has a way to turn itself on - and only once it is installed.
+# 7. On, where a plugin has a way to turn itself on - and only once it is installed.
 for c in os-fanctl os-frontpanel; do
     if [ -f "${DONE}/${c}" ] && [ -f "${COMP}/${c}/install/enable.sh" ]; then
         step "${c}-enabled" /bin/sh "${COMP}/${c}/install/enable.sh"

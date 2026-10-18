@@ -33,6 +33,8 @@ need() {
 # The entry points, as scripts/inject.sh's first-boot hook calls them.
 need opnsense-arabic/install.sh
 need opnsense-rtl/install.sh
+need os-theme-xgs/install/install.sh
+need os-theme-xgs/install/enable.sh
 for c in os-netreport os-linkhealth os-fanctl os-frontpanel; do
     need "${c}/install/install.sh"
 done

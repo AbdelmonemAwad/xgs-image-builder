@@ -6,6 +6,7 @@
 # name            repository                                              ref
 opnsense-arabic   https://github.com/AbdelmonemAwad/opnsense-arabic      main
 opnsense-rtl      https://github.com/AbdelmonemAwad/opnsense-rtl         main
+os-theme-xgs      https://github.com/AbdelmonemAwad/os-theme-xgs         main
 os-netreport      https://github.com/AbdelmonemAwad/os-netreport         main
 os-linkhealth     https://github.com/AbdelmonemAwad/os-linkhealth        main
 os-fanctl         https://github.com/AbdelmonemAwad/os-fanctl            main
