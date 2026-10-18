@@ -131,8 +131,8 @@ jobs:
           echo "stamp=${stamp}" >> "$GITHUB_OUTPUT"
           echo "installing os-xgs-npu ${stamp}"
 
-      # The rest of what goes into the image - the Arabic translation, the right-to-left layout and
-      # the four plugins - each from its own repository at the ref components.list gives, each
+      # The rest of what goes into the image - the Arabic translation, the right-to-left layout, the
+      # XGS Silicon theme and the four plugins - each from its own repository at the ref components.list gives, each
       # recorded by commit in components/STAMPS. What they are is that list; the order they are
       # installed in is the first-boot hook in scripts/inject.sh, because that order matters.
       - name: Fetch the components
@@ -257,7 +257,8 @@ jobs:
             printf 'Every family is installed. The selection happens at first boot, by guards that\n'
             printf 'already exist in the project. See `docs/board-maps.md`.\n\n'
             printf 'With it: the Arabic translation and the right-to-left layout (the GUI stays in\n'
-            printf 'English until Arabic is chosen), three plugins, and - when the front panel was\n'
+            printf 'English until Arabic is chosen), the XGS Silicon theme as the GUI theme, three\n'
+            printf 'plugins, and - when the front panel was\n'
             printf 'asked for - the front panel plugin with the LCDproc packages it needs. All installed\n'
             printf 'at first boot, in order, and each keeps itself across OPNsense updates with a pkg\n'
             printf 'trigger and a boot hook of its own.\n'

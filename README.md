@@ -17,7 +17,7 @@
   <br>
   <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases"><img alt="installs os-xgs-npu's newest release" src="https://img.shields.io/github/v/release/AbdelmonemAwad/os-xgs-npu?include_prereleases&amp;sort=semver&amp;style=flat-square&amp;label=installs%20os-xgs-npu&amp;color=8250df"></a>
   <a href="#why-only-267-in-the-release-list"><img alt="OPNsense 26.7, FreeBSD 15" src="https://img.shields.io/badge/OPNsense-26.7%20%C2%B7%20FreeBSD%2015-d94f00.svg?style=flat-square"></a>
-  <a href="#what-is-in-the-image"><img alt="in the image: the driver, four plugins, Arabic and right to left" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%204%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL-555555.svg?style=flat-square"></a>
+  <a href="#what-is-in-the-image"><img alt="in the image: the driver, four plugins, Arabic, right to left and the theme" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%204%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL%20%C2%B7%20theme-555555.svg?style=flat-square"></a>
   <a href="#status"><img alt="booted: one image, on an XGS 3300" src="https://img.shields.io/badge/booted-one%20image%2C%20on%20an%20XGS%203300-yellow.svg?style=flat-square"></a>
   <a href="#why-it-works-this-way"><img alt="the artifact is kept seven days, then it is gone" src="https://img.shields.io/badge/artifact-kept%207%20days%2C%20then%20gone-555555.svg?style=flat-square"></a>
   <a href="LICENSE"><img alt="licence: BSD-2-Clause" src="https://img.shields.io/badge/licence-BSD--2--Clause-blue.svg?style=flat-square"></a>
@@ -25,7 +25,8 @@
 
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it, and
-the Arabic translation, the right-to-left layout and four appliance plugins beside it.
+the Arabic translation, the right-to-left layout, the XGS Silicon theme and four appliance plugins
+beside it.
 
 <p align="center"><a href="https://abdelmonemawad.github.io/xgs-image-builder/"><b>Open the build page</b></a> - pick the OPNsense release, the image type and the console speed, and start the build. Nothing to install.</p>
 
@@ -52,8 +53,8 @@ An image built here installs that project's newest release, so it carries what t
 - **The driver's newest release.** `latest` by default: the version every appliance's Updates page
   offers, so an image starts where an update would take it - not on whatever was merged last.
 - **Everything at the first boot.** The driver built against the kernel the appliance runs, the
-  Arabic translation and the right-to-left layout, four plugins, and the front panel's where there
-  is a panel - each keeping itself across OPNsense updates.
+  Arabic translation and the right-to-left layout, the XGS Silicon theme, four plugins, and the
+  front panel's where there is a panel - each keeping itself across OPNsense updates.
 - **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
   queued, building step by step, image ready - and its clock stops the moment the image exists.
 - **Nothing kept.** The image is an artifact of your own run, and it expires in seven days.
@@ -168,6 +169,7 @@ names, and each recorded by commit in the build's summary:
 |---|---|---|
 | [opnsense-arabic](https://github.com/AbdelmonemAwad/opnsense-arabic) | the GUI in Arabic | in the language list; the GUI **stays English** until Arabic is chosen |
 | [opnsense-rtl](https://github.com/AbdelmonemAwad/opnsense-rtl) | the right-to-left layout for it | applied; it shows only when the language is Arabic or Persian |
+| [os-theme-xgs](https://github.com/AbdelmonemAwad/os-theme-xgs) | XGS Silicon: light, dark, and `xgs-auto`, which follows the browser's own setting | **the GUI's theme**, `xgs-auto`; another is a choice in System: Settings: General |
 | [os-netreport](https://github.com/AbdelmonemAwad/os-netreport) | scheduled network reports | on as installed |
 | [os-linkhealth](https://github.com/AbdelmonemAwad/os-linkhealth) | port and cable health | on as installed |
 | [os-fanctl](https://github.com/AbdelmonemAwad/os-fanctl) | fans and temperatures | on, in its watch-only mode: it never writes to a fan chip until a curve is chosen |
@@ -182,7 +184,8 @@ coprocessor's own ports.
 **The order is fixed, and it matters.** The first-boot hook in `scripts/inject.sh` installs the
 driver first (the network may depend on it), then LCDproc where there is a panel, then the translation (three plugins add
 their own Arabic strings to its catalog and skip a language whose catalog is missing), then the
-layout, then the plugins, then turns them on. Each step is done once and marked; one that fails is
+layout, then the theme (its installer has the layout mirror it) and makes it the GUI's theme, then
+the plugins, then turns them on. Each step is done once and marked; one that fails is
 logged in `/usr/local/share/xgs-image/firstboot.log` and tried again at the next boot, and does not stop the
 others.
 
