@@ -4,7 +4,12 @@
   <img src="docs/images/banner-light.svg" alt="xgs-image-builder - an OPNsense image for a Sophos XGS, with everything inside" width="100%">
 </picture>
 
-> **⚠ WORK IN PROGRESS, 2026-10-14: the XGS 136's driver, hooks and hardware support are being integrated into the driver project and its plugins right now. Nothing here is advised for any use or any test on either appliance - the XGS 136 or the XGS 3300 - until the integration and its testing are finished and this notice is removed.** The same notice heads the [driver project](https://github.com/AbdelmonemAwad/os-xgs-npu#readme) and the build page, and it comes off here when it comes off there.
+> [!NOTE]
+> **Still being completed.** The main part of the work is done. Some functions are being improved, and
+> the XGS-specific integration is being completed where something is still missing - each gap is on the
+> [driver project's parity page](https://github.com/AbdelmonemAwad/os-xgs-npu/blob/main/docs/families/parity.md) -
+> and it all arrives as updates, through its [releases](https://github.com/AbdelmonemAwad/os-xgs-npu/releases).
+> An image built here installs the newest one.
 
 <p align="center">
   <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml"><img alt="checks: the page, the request parser, the workflows" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml/badge.svg"></a>
@@ -211,8 +216,7 @@ shape the image, and it is short.
 
 Nothing here is finished. See the issues.
 
-- **Installing an image** is on the build page, step by step, for as long as the driver project's
-  work-in-progress notice stands: write the image to a stick, boot it, install to the disk, and at
+- **Installing an image** is on the build page, step by step: write the image to a stick, boot it, install to the disk, and at
   the first boot from the disk a thirty-second countdown on the console assigns the front ports -
   WAN on Port2 (XGS 3300) or Port1 (XGS 136), every other front port in one bridge as LAN on
   192.168.1.1, and the management port, where there is one, as MGMT on 192.168.100.1. A key during
