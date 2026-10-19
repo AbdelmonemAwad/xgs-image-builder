@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # An installer ISO is read-only cd9660. Repacking one bootable is separate work, and whether
       # files injected into an installer reach the INSTALLED system is unverified - so an ISO that
@@ -264,7 +264,7 @@ jobs:
             printf 'trigger and a boot hook of its own.\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}
           path: '*.img.xz'
