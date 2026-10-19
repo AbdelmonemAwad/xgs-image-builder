@@ -9,7 +9,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A build request is not this form: the [build page](https://abdelmonemawad.github.io/xgs-image-builder/) files those. This one is for a build that failed or an image that misbehaves. Take out addresses, MAC addresses and serial numbers before pasting.
+        A build request is not this form: the [build page](https://build.npuforge.org/) files those. This one is for a build that failed or an image that misbehaves. Take out addresses, MAC addresses and serial numbers before pasting.
   - type: dropdown
     id: appliance
     attributes:
