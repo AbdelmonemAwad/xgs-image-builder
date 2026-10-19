@@ -5,7 +5,7 @@
 **Not in a public issue, please.** Report it privately through GitHub -
 [**Report a vulnerability**](https://github.com/AbdelmonemAwad/xgs-image-builder/security/advisories/new),
 on the Security tab - where only you and the owner see it, and the fix can be prepared before anything is
-public. Without a GitHub account, write to **eg2@live.com**. Either way, include:
+public. Without a GitHub account, write to **security@npuforge.org**. Either way, include:
 
 - what is affected - the build workflows, the request from an issue, the build page and the image they produce;
 - the appliance, the image's options and the version it was built from, and the OPNsense version;
