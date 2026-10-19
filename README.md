@@ -28,7 +28,7 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
 the Arabic translation, the right-to-left layout, the XGS Silicon theme and four appliance plugins
 beside it.
 
-<p align="center"><a href="https://abdelmonemawad.github.io/xgs-image-builder/"><b>Open the build page</b></a> - pick the OPNsense release, the image type and the console speed, and start the build. Nothing to install.</p>
+<p align="center"><a href="https://build.npuforge.org/"><b>Open the build page</b></a> - pick the OPNsense release, the image type and the console speed, and start the build. Nothing to install.</p>
 
 ## The two appliances it builds for
 
@@ -84,7 +84,7 @@ page is live once Pages is turned on for that repository - step 2 below.
    picks it up and starts the build.
 
    Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
-   worth a look before you fork - is at <https://abdelmonemawad.github.io/xgs-image-builder/>.
+   worth a look before you fork - is at <https://build.npuforge.org/>.
 
    There are two ways to start it, and the difference between them is a token.
 
