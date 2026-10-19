@@ -811,8 +811,13 @@
   /* Work the repository out of this page's own URL rather than hard-coding it, so a fork's Pages
      site files issues on the fork. user.github.io/<repo>/ gives both halves; a custom domain or a
      user or organisation root page gives neither, so fall back and say so rather than guess
-     silently. */
+     silently - except the names below, which are known: build.npuforge.org serves the original's
+     page from its GitHub Pages (os-xgs-npu's website/worker/hosts.js). */
+  var KNOWN_HOSTS = { "build.npuforge.org": UPSTREAM };
   function detectRepo() {
+    if (Object.prototype.hasOwnProperty.call(KNOWN_HOSTS, location.hostname.toLowerCase())) {
+      return KNOWN_HOSTS[location.hostname.toLowerCase()];
+    }
     var m = location.hostname.match(/^([^.]+)\.github\.io$/i);
     var seg = location.pathname.split("/").filter(function (s) { return s.length; });
     if (m && seg.length) { return m[1] + "/" + seg[0]; }
