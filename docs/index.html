@@ -7,10 +7,18 @@
 <meta name="description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
 <meta name="color-scheme" content="light dark">
 <!--
-  A static page. It stores no credential of its own and loads nothing from anywhere - every
-  style, icon and line of script below is in this file. That is deliberate twice over: the page's
-  whole claim is that it is safe to read, and a page that pulls a stylesheet off a CDN stops
-  looking like itself the day that file is renamed.
+  A static page. It stores no credential of its own and loads nothing from a CDN - every style,
+  icon and line of script below is in this file, and what is not (the IBM Plex fonts in fonts/, the
+  Arabic in i18n/ar.json, the fork steps' pictures in images/fork/) sits beside it in docs/. That is
+  deliberate twice over: the page's whole claim is that it is safe to read, and a page that pulls a
+  stylesheet off a CDN stops looking like itself the day that file is renamed. The one thing read
+  from elsewhere is the newest os-xgs-npu release's number, from npuforge.org, and the page is
+  whole without it.
+
+  It reads in English or Arabic. The English is the page as written; an element with data-i18n
+  takes its Arabic from i18n/ar.json by that key, and the script's own messages take theirs by
+  their English (T(), and the patterns there for the ones with a number or a name inside). Nothing
+  of the logic depends on the language, and nothing Arabic is written in this file.
 
   It offers two ways to start a build, and they are not the same bargain:
 
@@ -39,60 +47,79 @@
   /* ====================================================================
      Tokens
      ==================================================================== */
+  /* XGS Silicon, the identity of the os-xgs-npu GUI theme and of npuforge.org: the bar carbon in
+     both schemes, as the chassis is; copper for what you act on; teal for the data path - here,
+     a build moving; IBM Plex for Latin, Arabic and machine text, carried in fonts/ beside this page. */
+  @font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("fonts/IBMPlexSans-Regular.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("fonts/IBMPlexSans-SemiBold.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Sans"; font-weight: 700; font-display: swap; src: url("fonts/IBMPlexSans-Bold.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 400; font-display: swap; src: url("fonts/IBMPlexSansArabic-Regular.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 600; font-display: swap; src: url("fonts/IBMPlexSansArabic-SemiBold.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Sans Arabic"; font-weight: 700; font-display: swap; src: url("fonts/IBMPlexSansArabic-Bold.woff2") format("woff2"); }
+  @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url("fonts/IBMPlexMono-Regular.woff2") format("woff2"); }
+
   :root {
     color-scheme: light dark;
 
-    --page:       #ffffff;
+    --sans: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --page:       #f3f4f1;
     --surface:    #ffffff;
-    --sunken:     #f6f8fa;
-    --ink:        #11181c;
-    --ink-2:      #4a5560;
-    --ink-3:      #78838f;
-    --rule:       #dfe3e8;
-    --rule-soft:  #eceff2;
+    --sunken:     #f7f8f5;
+    --ink:        #14171b;
+    --ink-2:      #3d444d;
+    --ink-3:      #59626e;
+    --rule:       #dcdfe3;
+    --rule-soft:  #e8eae6;
     --field:      #ffffff;
 
-    --brand:      #1f6feb;
-    --brand-hi:   #1a5fd0;
+    --brand:      #b04e14;
+    --brand-hi:   #944010;
     --brand-ink:  #ffffff;
-    --brand-tint: #eef4ff;
-    --brand-edge: #c3d9ff;
+    --brand-tint: #fbf1eb;
+    --brand-edge: #ecc9b3;
+    --link:       #b04e14;
+    --signal:     #0b7480;
+    --up:         #1b7a4b;
 
-    --warn:       #9a6700;
-    --warn-bg:    #fff8e5;
-    --warn-edge:  #e8c468;
-    --stop:       #a3252a;
-    --stop-bg:    #fff1f0;
-    --stop-edge:  #f0a8a4;
+    --warn:       #9a6510;
+    --warn-bg:    #fdf6e6;
+    --warn-edge:  #e9cf93;
+    --stop:       #b42318;
+    --stop-bg:    #fdf0ef;
+    --stop-edge:  #f1b3ad;
 
-    --ring:       0 0 0 3px rgba(31,111,235,.28);
-    --lift-1:     0 1px 2px rgba(17,24,28,.06), 0 1px 1px rgba(17,24,28,.04);
-    --lift-2:     0 4px 12px rgba(17,24,28,.07), 0 1px 3px rgba(17,24,28,.05);
-    --r-sm: 7px; --r-md: 10px; --r-lg: 14px;
+    --ring:       0 0 0 3px rgba(11,116,128,.28);
+    --lift-1:     0 1px 2px rgba(20,23,27,.06), 0 1px 1px rgba(20,23,27,.04);
+    --lift-2:     0 4px 12px rgba(20,23,27,.07), 0 1px 3px rgba(20,23,27,.05);
+    --r-sm: 7px; --r-md: 10px; --r-lg: 12px;
 
-    /* The hero keeps one fixed palette in both schemes, so the page has a constant identity. */
-    --hero-1:     #0b1b33;
-    --hero-2:     #122a4d;
-    --hero-ink:   #eef4ff;
-    --hero-ink-2: #9db4d6;
-    --hero-edge:  rgba(255,255,255,.14);
-    --hero-glow:  #4f9cff;
+    /* The hero and the bar keep one palette in both schemes - carbon, as the chassis is. */
+    --hero-1:     #16191d;
+    --hero-2:     #101317;
+    --hero-ink:   #e6e9ed;
+    --hero-ink-2: #98a2af;
+    --hero-edge:  rgba(255,255,255,.12);
+    --hero-glow:  #39c2c6;
+    --hero-act:   #e8834a;
 
-    --chev: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%234a5560' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='m4.2 6.4 3.8 3.6 3.8-3.6'/%3E%3C/svg%3E");
+    --chev: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2359626e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='m4.2 6.4 3.8 3.6 3.8-3.6'/%3E%3C/svg%3E");
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --page: #0a0e14; --surface: #11161d; --sunken: #161c24;
-      --ink: #e8edf3; --ink-2: #a5b1bf; --ink-3: #74808e;
-      --rule: #2a323d; --rule-soft: #1d242d; --field: #0d1219;
-      --brand: #58a6ff; --brand-hi: #79b8ff; --brand-ink: #06101f;
-      --brand-tint: #0f1d33; --brand-edge: #1f3f6b;
-      --warn: #e3b341; --warn-bg: #1f1a0d; --warn-edge: #6b5416;
-      --stop: #ff9f9a; --stop-bg: #22100f; --stop-edge: #6e2a28;
-      --ring: 0 0 0 3px rgba(88,166,255,.32);
+      --page: #0d0f12; --surface: #14181d; --sunken: #101317;
+      --ink: #e6e9ed; --ink-2: #b9c1cb; --ink-3: #98a2af;
+      --rule: #29303a; --rule-soft: #1c2128; --field: #0d0f12;
+      --brand: #bf5319; --brand-hi: #d0611f; --brand-ink: #ffffff;
+      --brand-tint: #1f1510; --brand-edge: #5a3220;
+      --link: #e8834a; --signal: #39c2c6; --up: #3ccb86;
+      --warn: #e9b04c; --warn-bg: #1f1a0d; --warn-edge: #6b5416;
+      --stop: #f07070; --stop-bg: #22100f; --stop-edge: #6e2a28;
+      --ring: 0 0 0 3px rgba(57,194,198,.32);
       --lift-1: 0 1px 2px rgba(0,0,0,.5);
       --lift-2: 0 6px 18px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.4);
-      --chev: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23a5b1bf' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='m4.2 6.4 3.8 3.6 3.8-3.6'/%3E%3C/svg%3E");
+      --chev: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2398a2af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='m4.2 6.4 3.8 3.6 3.8-3.6'/%3E%3C/svg%3E");
     }
   }
 
@@ -107,16 +134,16 @@
   }
   body {
     margin: 0; background: var(--page); color: var(--ink);
-    font: 16px/1.6 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+    font: 16px/1.6 var(--sans);
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
   }
-  h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.021em; line-height: 1.22; }
+  h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -.015em; line-height: 1.22; }
+  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 { letter-spacing: 0; }
   p { margin: 0; }
-  a { color: var(--brand); text-decoration: none; }
+  a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; text-underline-offset: 2px; }
   code, kbd, .mono {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-family: var(--mono);
     font-size: .9em; font-variant-ligatures: none;
   }
   kbd {
@@ -136,24 +163,25 @@
      ==================================================================== */
   .hero {
     position: relative; isolation: isolate; overflow: hidden;
-    background: linear-gradient(152deg, var(--hero-1) 0%, var(--hero-2) 62%, #0d2142 100%);
+    background: linear-gradient(160deg, var(--hero-1) 0%, var(--hero-2) 70%);
     color: var(--hero-ink); padding: 0 0 5.5rem;
   }
   .hero::before {
     content: ""; position: absolute; inset: 0; z-index: -2; opacity: .5;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-opacity='.08' stroke-width='1' d='M0 .5h48M.5 0v48'/%3E%3C/svg%3E");
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1px, transparent 0);
+    background-size: 22px 22px;
   }
   .hero::after {
     content: ""; position: absolute; z-index: -1; width: 46rem; height: 46rem;
     right: -16rem; top: -26rem; border-radius: 50%;
-    background: radial-gradient(circle, rgba(79,156,255,.30) 0%, rgba(79,156,255,0) 68%);
+    background: radial-gradient(circle, rgba(57,194,198,.16) 0%, rgba(57,194,198,0) 68%);
   }
   .nav {
     display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
     padding: 1.1rem 0; border-bottom: 1px solid var(--hero-edge);
   }
   .lockup { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-  .lockup svg { flex: none; color: var(--hero-glow); }
+  .lockup svg { flex: none; }
   .lockup .name { font-weight: 650; font-size: .98rem; letter-spacing: -.012em; color: var(--hero-ink); }
   .nav .gap { flex: 1 1 auto; }
   .nav-links { display: flex; gap: 1.25rem; font-size: .9rem; }
@@ -167,12 +195,12 @@
     font-size: .8rem; color: var(--hero-ink-2); background: rgba(255,255,255,.04);
   }
   .eyebrow .dot { width: .45rem; height: .45rem; border-radius: 50%; background: var(--hero-glow); flex: none; }
-  .hero h1 { font-size: clamp(2rem, 1.3rem + 2.6vw, 3rem); color: #fff; }
+  .hero h1 { font-size: clamp(2rem, 1.3rem + 2.6vw, 3rem); color: #fff; font-weight: 700; }
   .hero .lede {
     margin-top: .9rem; font-size: clamp(1rem, .96rem + .2vw, 1.12rem);
     color: var(--hero-ink-2); max-width: 36rem;
   }
-  .hero .lede a { color: #cfe2ff; text-decoration: underline; text-underline-offset: 2px; }
+  .hero .lede a { color: var(--hero-act); text-decoration: underline; text-underline-offset: 2px; }
 
   /* steps rail */
   .rail { display: flex; gap: 0; margin: 2.5rem 0 0; flex-wrap: wrap; }
@@ -189,12 +217,18 @@
     background: var(--hero-1); border: 1px solid var(--hero-edge);
     font-size: .76rem; font-weight: 650; color: var(--hero-ink-2);
   }
-  .rail li.on .pip { background: var(--hero-glow); border-color: var(--hero-glow); color: #06101f; }
+  .rail li.on .pip { background: var(--hero-act); border-color: var(--hero-act); color: #16191d; }
   .rail .t { display: block; margin-top: .7rem; font-size: .9rem; font-weight: 600; color: var(--hero-ink-2); }
   .rail li.on .t { color: #fff; }
-  .rail li.done .pip { background: #2ea043; border-color: #2ea043; color: #fff; }
+  .rail li.done .pip { background: #3ccb86; border-color: #3ccb86; color: #16191d; }
   .rail li.done .t { color: var(--hero-ink); }
-  .rail .d { display: block; margin-top: .15rem; font-size: .82rem; color: var(--hero-ink-2); opacity: .8; padding-right: .5rem; }
+  .rail .d { display: block; margin-top: .15rem; font-size: .82rem; color: var(--hero-ink-2); opacity: .8; padding-inline-end: .5rem; }
+  [dir="rtl"] .rail li { padding: 0 0 0 1.25rem; }
+  [dir="rtl"] .rail li::before { left: 0; right: 0; }
+  [dir="rtl"] .rail li:first-child::before { left: 0; right: .82rem; }
+  [dir="rtl"] .rail li:last-child::before { left: auto; right: 0; width: .82rem; }
+  [dir="rtl"] .eyebrow { padding: .28rem .55rem .28rem .8rem; }
+  [dir="rtl"] .hero::after { right: auto; left: -16rem; }
 
   /* ====================================================================
      Progress, pinned to the top of the window while a build is followed
@@ -206,8 +240,8 @@
   }
   .topbar-track { height: 4px; background: rgba(255,255,255,.10); }
   .topbar-fill { height: 100%; width: 0; background: var(--hero-glow); transition: width .8s ease; }
-  .topbar[data-state="done"] .topbar-fill { background: #3fb950; }
-  .topbar[data-state="failed"] .topbar-fill { background: #f85149; }
+  .topbar[data-state="done"] .topbar-fill { background: #3ccb86; }
+  .topbar[data-state="failed"] .topbar-fill { background: #f07070; }
   .topbar-row { display: flex; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; padding-top: .55rem; padding-bottom: .55rem; }
   .stages { display: flex; gap: .35rem; margin: 0; padding: 0; flex-wrap: wrap; }
   .stages li {
@@ -217,17 +251,17 @@
   }
   .stages .tick { width: .5rem; height: .5rem; border-radius: 50%; background: var(--hero-edge); flex: none; }
   .stages li.done { color: var(--hero-ink); }
-  .stages li.done .tick { background: #3fb950; }
+  .stages li.done .tick { background: #3ccb86; }
   .stages li.on { color: #fff; border-color: var(--hero-glow); }
   .stages li.on .tick { background: var(--hero-glow); animation: pulse 1.4s ease-in-out infinite; }
-  .stages li.bad { color: #ffc1bd; border-color: #f85149; }
-  .stages li.bad .tick { background: #f85149; }
+  .stages li.bad { color: #ffc1bd; border-color: #f07070; }
+  .stages li.bad .tick { background: #f07070; }
   .topbar-step {
     flex: 1 1 12rem; min-width: 0; font-size: .82rem; color: var(--hero-ink-2);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .topbar-num {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--mono);
     font-variant-numeric: tabular-nums; font-size: .9rem; color: #fff;
   }
   .topbar-num:empty { display: none; }
@@ -252,12 +286,12 @@
   .call.warn { background: var(--warn-bg); border-color: var(--warn-edge); color: var(--warn); }
   .call.stop { background: var(--stop-bg); border-color: var(--stop-edge); color: var(--stop); }
   .call.info { background: var(--brand-tint); border-color: var(--brand-edge); color: var(--ink); }
-  .call.info svg { color: var(--brand); }
+  .call.info svg { color: var(--link); }
   .call.hide { display: none; }
 
   /* The installation steps, a plain numbered list in a card. */
   .install { margin-top: 1.5rem; }
-  .steps { margin: 0; padding-left: 1.3rem; }
+  .steps { margin: 0; padding: 0; padding-inline-start: 1.3rem; }
   .steps li { margin: .55rem 0; font-size: .92rem; line-height: 1.6; color: var(--ink-2); }
   .steps li strong { color: var(--ink); }
 
@@ -292,9 +326,10 @@
   }
   select { padding-right: 2.4rem; background-image: var(--chev); background-repeat: no-repeat;
            background-position: right .7rem center; background-size: 1.05rem; cursor: pointer; }
-  input[type=text] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; }
+  [dir="rtl"] select { padding-right: .8rem; padding-left: 2.4rem; background-position: left .7rem center; }
+  input[type=text] { font-family: var(--mono); font-size: .9rem; }
   select:hover, input[type=text]:hover { border-color: var(--ink-3); }
-  select:focus-visible, input:focus-visible { border-color: var(--brand); box-shadow: var(--ring); }
+  select:focus-visible, input:focus-visible { border-color: var(--signal); box-shadow: var(--ring); }
   option:disabled { color: var(--ink-3); }
 
   /* ====================================================================
@@ -309,6 +344,7 @@
   .spec dt { flex: none; width: 6.1rem; color: var(--ink-3); }
   .spec dd { margin: 0; min-width: 0; font-weight: 550; word-break: break-word; }
   .spec dd .mono { font-weight: 500; }
+  [dir="rtl"] .spec dd[dir="ltr"] { text-align: right; }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
@@ -337,41 +373,41 @@
   .token label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .4rem; }
   .token input[type=password] {
     -webkit-appearance: none; appearance: none; width: 100%;
-    padding: .55rem .7rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    padding: .55rem .7rem; font-family: var(--mono);
     font-size: .85rem; color: var(--ink); background: var(--field);
     border: 1px solid var(--rule); border-radius: var(--r-sm);
   }
   .token input[type=password]:hover { border-color: var(--ink-3); }
-  .token input[type=password]:focus-visible { border-color: var(--brand); box-shadow: var(--ring); }
+  .token input[type=password]:focus-visible { border-color: var(--signal); box-shadow: var(--ring); }
   .keep { display: flex; gap: .45rem; align-items: center; margin-top: .55rem; font-size: .84rem; color: var(--ink-2); }
   .keep input { accent-color: var(--brand); margin: 0; }
 
   .live { display: grid; gap: .55rem; }
   .live .state { display: flex; align-items: center; gap: .55rem; font-weight: 600; font-size: .95rem; }
   .live .dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--ink-3); flex: none; }
-  .live[data-state="working"] .dot { background: var(--brand); animation: pulse 1.4s ease-in-out infinite; }
-  .live[data-state="done"] .dot { background: #1a7f37; }
-  .live[data-state="failed"] .dot { background: #cf222e; }
+  .live[data-state="working"] .dot { background: var(--signal); animation: pulse 1.4s ease-in-out infinite; }
+  .live[data-state="done"] .dot { background: var(--up); }
+  .live[data-state="failed"] .dot { background: var(--stop); }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .live[data-state="done"] .dot { background: #3fb950; }
-    :root:not([data-theme="light"]) .live[data-state="failed"] .dot { background: #f85149; }
+    :root:not([data-theme="light"]) .live[data-state="done"] .dot { background: var(--up); }
+    :root:not([data-theme="light"]) .live[data-state="failed"] .dot { background: var(--stop); }
   }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
   .live .detail { font-size: .86rem; color: var(--ink-2); }
   .live .clock {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--mono);
     font-size: 1.35rem; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
     color: var(--ink); line-height: 1.1;
   }
   .live .clock:empty { display: none; }
-  .live .clock .unit { font-size: .8rem; color: var(--ink-3); margin-left: .15rem; }
+  .live .clock .unit { font-size: .8rem; color: var(--ink-3); margin-inline-start: .25rem; font-family: var(--sans); }
   .live .detail .mono { color: var(--ink); }
   .live .err {
     font-size: .86rem; color: var(--stop); background: var(--stop-bg);
     border: 1px solid var(--stop-edge); border-radius: var(--r-sm); padding: .55rem .7rem;
   }
-  .btn-go { background: #1a7f37; color: #fff; width: 100%; }
-  .btn-go:hover { background: #166f2f; }
+  .btn-go { background: var(--up); color: #fff; width: 100%; }
+  .btn-go:hover { filter: brightness(.92); }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   .btn:disabled:active { transform: none; }
   .hidden { display: none !important; }
@@ -381,7 +417,9 @@
   summary::-webkit-details-marker { display: none; }
   summary::before { content: "▸ "; }
   details[open] summary::before { content: "▾ "; }
-  summary:hover { color: var(--brand); }
+  summary:hover { color: var(--link); }
+  [dir="rtl"] summary::before { content: "\25C2  "; }
+  [dir="rtl"] details[open] summary::before { content: "\25BE  "; }
   pre {
     margin: .7rem 0 0; background: var(--sunken); border: 1px solid var(--rule-soft);
     border-radius: var(--r-sm); padding: .75rem .85rem; overflow-x: auto; font-size: .82rem;
@@ -423,6 +461,49 @@
     .card-body { padding: 1.1rem 1rem; }
     .ctl { max-width: none; }
   }
+  /* ====================================================================
+     The language, the way back to npuforge.org, the newest release
+     ==================================================================== */
+  a.lockup { color: inherit; text-decoration: none; }
+  a.lockup:hover .name { color: #fff; }
+  .lang {
+    font: inherit; font-size: .85rem; font-weight: 600; color: var(--hero-ink); background: transparent;
+    border: 1px solid var(--hero-edge); border-radius: 999px; padding: .22rem .85rem; cursor: pointer;
+  }
+  .lang:hover { border-color: var(--hero-act); color: var(--hero-act); }
+  .release { display: flex; align-items: center; gap: .5rem; margin-top: 1.3rem; font-size: .82rem; color: var(--hero-ink-2); }
+  .release[hidden] { display: none; }
+  .release b {
+    font-family: var(--mono); font-weight: 400; color: var(--hero-glow);
+    background: rgba(57,194,198,.12); border-radius: 999px; padding: .05rem .65rem; direction: ltr;
+  }
+  [dir="rtl"] .btn .arrow { transform: scaleX(-1); }
+  code, .mono { unicode-bidi: isolate; }
+
+  /* ====================================================================
+     Your own copy, step by step
+     ==================================================================== */
+  .forkhow { margin-top: 1.5rem; }
+  .forkhow .lead { font-size: .92rem; color: var(--ink-2); margin-bottom: 1.3rem; max-width: 46rem; line-height: 1.65; }
+  .fsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.6rem; counter-reset: f; }
+  .fsteps > li { counter-increment: f; display: grid; grid-template-columns: 2.1rem minmax(0, 1fr); gap: .25rem .95rem; }
+  .fsteps > li::before {
+    content: counter(f); grid-row: span 2; width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    display: grid; place-items: center; background: var(--brand); color: var(--brand-ink);
+    font-weight: 700; font-size: .92rem;
+  }
+  .fsteps h3 { font-size: 1rem; align-self: center; }
+  .fsteps p { font-size: .9rem; color: var(--ink-2); line-height: 1.65; }
+  .fsteps figure { grid-column: 2; margin: .65rem 0 0; }
+  .fsteps img {
+    display: block; max-width: 100%; height: auto; border-radius: var(--r-md);
+    border: 1px solid var(--rule); box-shadow: var(--lift-2); background: #0d1117;
+  }
+  @media (max-width: 40rem) {
+    .fsteps > li { grid-template-columns: 1.8rem minmax(0, 1fr); }
+    .fsteps > li::before { width: 1.8rem; height: 1.8rem; }
+    .fsteps figure { grid-column: 1 / -1; }
+  }
 </style>
 </head>
 <body>
@@ -431,14 +512,15 @@
      top of the window however far down the page the reader is. -->
 <div class="topbar hidden" id="topbar" data-state="working">
   <div class="topbar-track" id="topbar_bar" role="progressbar" aria-label="How far the build has got"
+       data-i18n-aria="bar.label"
        aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="topbar-fill" id="topbar_fill"></div></div>
   <div class="wrap topbar-row">
     <ol class="stages" id="stages">
-      <li><span class="tick"></span>Requested</li>
-      <li><span class="tick"></span>Accepted</li>
-      <li><span class="tick"></span>Queued</li>
-      <li><span class="tick"></span>Building</li>
-      <li><span class="tick"></span>Image ready</li>
+      <li><span class="tick"></span><span data-i18n="stage.requested">Requested</span></li>
+      <li><span class="tick"></span><span data-i18n="stage.accepted">Accepted</span></li>
+      <li><span class="tick"></span><span data-i18n="stage.queued">Queued</span></li>
+      <li><span class="tick"></span><span data-i18n="stage.building">Building</span></li>
+      <li><span class="tick"></span><span data-i18n="stage.ready">Image ready</span></li>
     </ol>
     <span class="topbar-step" id="topbar_step"></span>
     <span class="topbar-num" id="topbar_pct"></span>
@@ -449,47 +531,51 @@
 <header class="hero">
   <div class="wrap">
     <div class="nav">
-      <span class="lockup">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="2.5" y="6.5" width="19" height="11" rx="2.5"/>
-          <path d="M6 10.5h3.5M6 13.5h2"/>
-          <circle cx="16.8" cy="12" r="2.3"/>
-          <path d="M16.8 7.4v1.2M16.8 15.4v1.2M12.9 12h1.2M19.5 12h1.2"/>
+      <a class="lockup" href="https://npuforge.org" aria-label="npuforge.org">
+        <!-- the chip of XGS Silicon, npuforge.org's mark -->
+        <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M19 13V7M24 13V7M29 13V7M19 41v-6M24 41v-6M29 41v-6M13 19H7M13 24H7M13 29H7M41 19h-6M41 24h-6M41 29h-6"
+                stroke="#e6e9ed" stroke-width="2.6" stroke-linecap="square"/>
+          <rect x="13" y="13" width="22" height="22" rx="4.5" fill="none" stroke="#e8834a" stroke-width="3.4"/>
         </svg>
-        <span class="name">XGS Image Builder</span>
-      </span>
+        <span class="name" data-i18n="nav.name">XGS Image Builder</span>
+      </a>
       <span class="gap"></span>
       <nav class="nav-links" aria-label="Repository">
-        <a id="lnk_readme" href="https://github.com/AbdelmonemAwad/xgs-image-builder#readme">Docs</a>
-        <a id="lnk_runs" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml">Builds</a>
-        <a id="lnk_src" href="https://github.com/AbdelmonemAwad/xgs-image-builder">Source</a>
+        <a href="https://npuforge.org" data-i18n="nav.site">npuforge.org</a>
+        <a id="lnk_readme" href="https://github.com/AbdelmonemAwad/xgs-image-builder#readme" data-i18n="nav.docs">Docs</a>
+        <a id="lnk_runs" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml" data-i18n="nav.runs">Builds</a>
+        <a id="lnk_src" href="https://github.com/AbdelmonemAwad/xgs-image-builder" data-i18n="nav.source">Source</a>
       </nav>
+      <!-- Its label is the other language's own name, from i18n/ar.json; "AR" until that is read. -->
+      <button type="button" class="lang" id="lang_toggle" aria-label="Arabic">AR</button>
     </div>
 
     <div class="hero-body">
-      <span class="eyebrow"><span class="dot"></span>Nothing to install, and nothing kept</span>
-      <h1>Build a bootable OPNsense image for a Sophos XGS</h1>
-      <p class="lede">The official OPNsense image, with the
+      <span class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">Nothing to install, and nothing kept</span></span>
+      <h1 data-i18n="hero.title">Build a bootable OPNsense image for a Sophos XGS</h1>
+      <p class="lede" data-i18n="hero.lede">The official OPNsense image, with the
         <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">os-xgs-npu</a> coprocessor driver and
         plugin already laid into it. Choose how it should boot, and this page opens the build
         request for you.</p>
+      <!-- The newest release, from npuforge.org; hidden until it is read. -->
+      <p class="release" id="release" hidden><span data-i18n="hero.release">Builds with os-xgs-npu</span> <b id="release_tag"></b></p>
 
       <ol class="rail">
         <li class="on">
           <span class="pip">1</span>
-          <span class="t">Configure</span>
-          <span class="d">You are here. Nothing has started.</span>
+          <span class="t" data-i18n="rail.1.t">Configure</span>
+          <span class="d" data-i18n="rail.1.d">You are here. Nothing has started.</span>
         </li>
         <li>
           <span class="pip">2</span>
-          <span class="t">Start it</span>
-          <span class="d">From here with a token, or by filing an issue.</span>
+          <span class="t" data-i18n="rail.2.t">Start it</span>
+          <span class="d" data-i18n="rail.2.d">From here with a token, or by filing an issue.</span>
         </li>
         <li>
           <span class="pip">3</span>
-          <span class="t">Download the image</span>
-          <span class="d">It is kept for seven days, then it expires.</span>
+          <span class="t" data-i18n="rail.3.t">Download the image</span>
+          <span class="d" data-i18n="rail.3.d">It is kept for seven days, then it expires.</span>
         </li>
       </ol>
     </div>
@@ -507,7 +593,7 @@
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 6.5a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4A.75.75 0 0 1 8 6.5M8 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
           </svg>
-          <span><strong>Still being completed.</strong> The main part of the work is done. Some
+          <span data-i18n="call.status"><strong>Still being completed.</strong> The main part of the work is done. Some
           functions are being improved, and the XGS-specific integration is being completed where
           something is still missing - each gap is listed in the
           <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/blob/main/docs/families/parity.md">driver
@@ -519,7 +605,7 @@
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M6.46 1.14a1.75 1.75 0 0 1 3.08 0l5.25 9.5A1.75 1.75 0 0 1 13.25 13.3H2.75A1.75 1.75 0 0 1 1.21 10.64ZM8 5a.75.75 0 0 0-.75.75v2.5a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8 5m0 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
           </svg>
-          <span><strong><del>This image has not been booted on any appliance.</del> One image built
+          <span data-i18n="call.warn"><strong><del>This image has not been booted on any appliance.</del> One image built
           here - 26.7, serial, 38400 baud - has been installed on an XGS 3300 (2026-10-16); no other
           combination has been booted on a device. Burn one and boot it before relying on it.</strong>
           The build runs on a GitHub runner, which has no Sophos hardware attached to it and never
@@ -530,46 +616,46 @@
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0m0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4m0 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
           </svg>
-          <span><strong>You are reading the original repository's page.</strong> A build only runs
+          <span data-i18n="call.upstream"><strong>You are reading the original repository's page.</strong> A build only runs
           for the account that owns the repository, so pressing <em>Build it</em> here files a
           request that this repository answers with a refusal - which the page will show you within
           seconds rather than leave you waiting. Two ways round it, and the first is one press:
           open <em>Fork and build in my account</em> below and give it a token, and it forks this
           repository for you and builds there. Or
           <a id="fork_link" href="https://github.com/AbdelmonemAwad/xgs-image-builder/fork">fork it
-          yourself</a>, enable Actions on the fork, turn on Pages (Settings, then Pages, branch
-          <code>main</code>, folder <code>/docs</code>), and use your fork's copy of this page.
+          yourself</a> - <a href="#fork_steps">the four steps, with pictures</a>, are below - and use
+          your fork's copy of this page.
           Either way it is your build, your artifact, your storage - the licence position, and
           CONTRIBUTING.md says why.</span>
         </div>
 
         <section class="card">
           <div class="card-head">
-            <h2>The image</h2>
-            <span class="aside">what gets written to the disk</span>
+            <h2 data-i18n="image.h">The image</h2>
+            <span class="aside" data-i18n="image.aside">what gets written to the disk</span>
           </div>
           <div class="card-body">
 
             <div class="field">
-              <label for="opnsense_version">OPNsense release</label>
+              <label for="opnsense_version" data-i18n="image.release">OPNsense release</label>
               <div class="ctl">
                 <select id="opnsense_version" name="opnsense_version">
-                  <option value="26.7" selected>26.7 &mdash; what the driver is built against</option>
+                  <option value="26.7" selected data-i18n="opt.267">26.7 &mdash; what the driver is built against</option>
                 </select>
               </div>
-              <p class="note">Downloaded from OPNsense's own mirror when the build runs, and its
+              <p class="note" data-i18n="image.release.note">Downloaded from OPNsense's own mirror when the build runs, and its
               checksum verified against the release's own file. No part of an OPNsense image lives
               in this repository.</p>
             </div>
 
             <div class="field">
-              <label for="image_type">Image type</label>
+              <label for="image_type" data-i18n="image.type">Image type</label>
               <div class="ctl">
                 <select id="image_type" name="image_type">
-                  <option value="serial" selected>serial &mdash; for an appliance with no screen</option>
-                  <option value="nano">nano &mdash; smaller, for a flash disk</option>
-                  <option value="vga">vga &mdash; only if a monitor is attached</option>
-                  <option value="dvd" disabled>dvd &mdash; unavailable</option>
+                  <option value="serial" selected data-i18n="opt.serial">serial &mdash; for an appliance with no screen</option>
+                  <option value="nano" data-i18n="opt.nano">nano &mdash; smaller, for a flash disk</option>
+                  <option value="vga" data-i18n="opt.vga">vga &mdash; only if a monitor is attached</option>
+                  <option value="dvd" disabled data-i18n="opt.dvd">dvd &mdash; unavailable</option>
                 </select>
               </div>
               <p class="note" id="type_hint"></p>
@@ -580,46 +666,46 @@
 
         <section class="card">
           <div class="card-head">
-            <h2>The console</h2>
-            <span class="aside">the one choice that can lock you out</span>
+            <h2 data-i18n="console.h">The console</h2>
+            <span class="aside" data-i18n="console.aside">the one choice that can lock you out</span>
           </div>
           <div class="card-body">
 
             <div class="field">
-              <label for="console_speed">Serial console speed</label>
+              <label for="console_speed" data-i18n="console.speed">Serial console speed</label>
               <div class="ctl">
                 <select id="console_speed" name="console_speed">
-                  <option value="115200" selected>115200 &mdash; the OPNsense default</option>
-                  <option value="38400">38400 &mdash; what Sophos firmware uses</option>
+                  <option value="115200" selected data-i18n="opt.115200">115200 &mdash; the OPNsense default</option>
+                  <option value="38400" data-i18n="opt.38400">38400 &mdash; what Sophos firmware uses</option>
                 </select>
               </div>
               <p class="note key" id="speed_hint"></p>
-              <p class="note quiet">An XGS has no screen, so the serial port is the only way in. Get
+              <p class="note quiet" data-i18n="console.speed.note">An XGS has no screen, so the serial port is the only way in. Get
               this wrong and the appliance boots perfectly into a console you cannot read. Neither
               value is safer in the abstract - match whatever your terminal is set to.</p>
             </div>
 
             <div class="field">
-              <label for="serial_console">Where the console goes</label>
+              <label for="serial_console" data-i18n="console.where">Where the console goes</label>
               <div class="ctl">
                 <select id="serial_console" name="serial_console">
-                  <option value="yes" selected>Serial port only</option>
-                  <option value="no">Serial port and video</option>
+                  <option value="yes" selected data-i18n="opt.serialonly">Serial port only</option>
+                  <option value="no" data-i18n="opt.serialvideo">Serial port and video</option>
                 </select>
               </div>
-              <p class="note quiet">On an appliance with no video output the two behave the same.
+              <p class="note quiet" data-i18n="console.where.note">On an appliance with no video output the two behave the same.
               Leave it on serial only unless you have a reason.</p>
             </div>
 
             <div class="field">
-              <label for="front_panel">Front panel</label>
+              <label for="front_panel" data-i18n="console.panel">Front panel</label>
               <div class="ctl">
                 <select id="front_panel" name="front_panel">
-                  <option value="no" selected>No front panel</option>
-                  <option value="yes">LCD and keys on the front</option>
+                  <option value="no" selected data-i18n="opt.nopanel">No front panel</option>
+                  <option value="yes" data-i18n="opt.panel">LCD and keys on the front</option>
                 </select>
               </div>
-              <p class="note quiet">The rack models, such as the XGS 3300, have an LCD and keys on the
+              <p class="note quiet" data-i18n="console.panel.note">The rack models, such as the XGS 3300, have an LCD and keys on the
               front; the desktop ones, such as the XGS 136, do not. Yes adds the front panel plugin and
               LCDproc to the image.</p>
             </div>
@@ -629,17 +715,17 @@
 
         <section class="card">
           <div class="card-head">
-            <h2>The driver</h2>
-            <span class="aside">fetched at build time, not stored here</span>
+            <h2 data-i18n="driver.h">The driver</h2>
+            <span class="aside" data-i18n="driver.aside">fetched at build time, not stored here</span>
           </div>
           <div class="card-body">
             <div class="field">
-              <label for="project_ref">os-xgs-npu release, commit, tag or branch</label>
+              <label for="project_ref" data-i18n="driver.ref">os-xgs-npu release, commit, tag or branch</label>
               <div class="ctl">
                 <input type="text" id="project_ref" name="project_ref" value="latest" spellcheck="false"
-                       autocapitalize="off" autocorrect="off" aria-describedby="ref_hint">
+                       autocapitalize="off" autocorrect="off" aria-describedby="ref_hint" dir="ltr">
               </div>
-              <p class="note" id="ref_hint">Leave this as <code>latest</code> - the project's newest
+              <p class="note" id="ref_hint" data-i18n="driver.ref.note">Leave this as <code>latest</code> - the project's newest
               <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases">release</a>, the one an
               appliance's Updates page offers - unless you know why not; <code>main</code> is
               everything merged, released or not.
@@ -653,34 +739,34 @@
 
       <aside class="panel" aria-label="Your request">
         <section class="card">
-          <div class="card-head"><h2>Your image</h2></div>
+          <div class="card-head"><h2 data-i18n="panel.h">Your image</h2></div>
           <div class="card-body">
             <dl class="spec">
-              <div><dt>Release</dt><dd id="sum_release"></dd></div>
-              <div><dt>Type</dt><dd id="sum_type"></dd></div>
-              <div><dt>Console</dt><dd id="sum_console"></dd></div>
-              <div><dt>Speed</dt><dd id="sum_speed"></dd></div>
-              <div><dt>Driver</dt><dd id="sum_ref" class="mono"></dd></div>
+              <div><dt data-i18n="panel.release">Release</dt><dd id="sum_release" dir="ltr"></dd></div>
+              <div><dt data-i18n="panel.type">Type</dt><dd id="sum_type" dir="ltr"></dd></div>
+              <div><dt data-i18n="panel.console">Console</dt><dd id="sum_console"></dd></div>
+              <div><dt data-i18n="panel.speed">Speed</dt><dd id="sum_speed" dir="ltr"></dd></div>
+              <div><dt data-i18n="panel.driver">Driver</dt><dd id="sum_ref" class="mono" dir="ltr"></dd></div>
             </dl>
 
             <details>
-              <summary>The exact request the workflow reads</summary>
-              <pre><code id="json"></code></pre>
+              <summary data-i18n="panel.json">The exact request the workflow reads</summary>
+              <pre dir="ltr"><code id="json"></code></pre>
             </details>
 
           <details class="token" id="token_block">
-            <summary>Fork and build in my account, with a token</summary>
-            <label for="token" style="margin-top:.7rem">GitHub token</label>
-            <input type="password" id="token" autocomplete="off" spellcheck="false"
+            <summary data-i18n="token.summary">Fork and build in my account, with a token</summary>
+            <label for="token" style="margin-top:.7rem" data-i18n="token.label">GitHub token</label>
+            <input type="password" id="token" autocomplete="off" spellcheck="false" dir="ltr"
                    placeholder="github_pat_..." aria-describedby="token_hint">
-            <label class="keep"><input type="checkbox" id="keep"> Remember it in this browser</label>
-            <p class="note quiet" id="token_hint" style="margin-top:.6rem">With one, the page
+            <label class="keep"><input type="checkbox" id="keep"> <span data-i18n="token.keep">Remember it in this browser</span></label>
+            <p class="note quiet" id="token_hint" style="margin-top:.6rem" data-i18n="token.hint">With one, the page
             forks this repository into your account if you have not already, turns workflows on for
             the fork, builds there and hands you the image. No issue is filed and no tab opens -
             that is what a token buys, and it is the only thing that can: forking, filing an issue
             and dispatching a workflow all go through the REST API, which has no door that does not
             want a credential.</p>
-            <p class="note quiet">It needs to cover <strong>creating a repository</strong>
+            <p class="note quiet" data-i18n="token.scopes">It needs to cover <strong>creating a repository</strong>
             (a fork is a new one) and <strong>Actions: Read and write</strong>. A
             <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank"
                rel="noopener">classic token with <code>repo</code> and <code>workflow</code></a> is
@@ -692,26 +778,26 @@
 
         <div class="stack" id="actions">
           <button type="submit" class="btn btn-primary" id="go">
-            Build it
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <span data-i18n="btn.go">Build it</span>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" class="arrow">
               <path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06l2.97-2.97H2.75a.75.75 0 0 1 0-1.5h8.44L8.22 4.03a.75.75 0 0 1 0-1.06"/>
             </svg>
           </button>
-          <button type="button" class="btn btn-ghost" id="build">Fork and build in my account</button>
-          <button type="button" class="btn btn-ghost" id="copy">Copy the request</button>
+          <button type="button" class="btn btn-ghost" id="build"><span data-i18n="btn.build">Fork and build in my account</span></button>
+          <button type="button" class="btn btn-ghost" id="copy"><span data-i18n="btn.copy">Copy the request</span></button>
         </div>
 
         <section class="card hidden" id="live_card">
-          <div class="card-head"><h2>This build</h2></div>
+          <div class="card-head"><h2 data-i18n="live.h">This build</h2></div>
           <div class="card-body">
             <div class="live" id="live" data-state="working" role="status" aria-live="polite">
               <span class="state"><span class="dot"></span><span id="live_state">Starting</span></span>
               <span class="detail" id="live_detail"></span>
-              <span class="clock" id="live_clock"></span>
+              <span class="clock" id="live_clock" dir="ltr"></span>
               <span class="err hidden" id="live_err"></span>
-              <a class="btn btn-go hidden" id="live_dl" target="_blank" rel="noopener">Download the image</a>
+              <a class="btn btn-go hidden" id="live_dl" target="_blank" rel="noopener" data-i18n="live.dl">Download the image</a>
               <a class="btn btn-ghost hidden" id="live_log" target="_blank" rel="noopener">Open the run on GitHub</a>
-              <button type="button" class="btn btn-ghost hidden" id="live_clear">Start another</button>
+              <button type="button" class="btn btn-ghost hidden" id="live_clear" data-i18n="live.clear">Start another</button>
             </div>
           </div>
         </section>
@@ -719,7 +805,7 @@
         <p class="target" id="target"></p>
         <span id="copied" role="status" aria-live="polite"></span>
 
-        <p class="fine" id="fine"><strong>Build it</strong> opens GitHub in a new tab with the
+        <p class="fine" id="fine" data-i18n="panel.fine"><strong>Build it</strong> opens GitHub in a new tab with the
         request filled in. Press <kbd>Submit new issue</kbd> there - that press is what
         authenticates you, and it is the only reason this needs no token. Then come back here: the
         page reads the request back, shows whatever the repository answers, and follows the build
@@ -729,32 +815,90 @@
     </div>
   </form>
 
+  <!-- A fork of one's own, step by step, photographed on GitHub on 2026-10-20 with a fork made for
+       the purpose; the account that made it is blurred out. -->
+  <section class="card forkhow" id="fork_steps">
+    <div class="card-head">
+      <h2 data-i18n="fork.h">Your own copy, step by step</h2>
+      <span class="aside" data-i18n="fork.aside">four steps, once - then this page is yours</span>
+    </div>
+    <div class="card-body">
+      <p class="lead" data-i18n="fork.lead">A build runs in the account that owns the repository, so your
+      image is built in your own copy of it: your Actions minutes, your artifact, nothing kept by
+      anyone else. The copy brings this page with it, and from your copy it files and builds in your
+      account. If you would rather not do it by hand, <em>Fork and build in my account</em> above does
+      all of it with a token.</p>
+      <ol class="fsteps">
+        <li>
+          <h3 data-i18n="fork.1.h">Fork the repository</h3>
+          <p data-i18n="fork.1.p">Open <a href="https://github.com/AbdelmonemAwad/xgs-image-builder">xgs-image-builder</a>
+          on GitHub, signed in, and press <strong>Fork</strong> at the top right.</p>
+          <figure>
+            <img src="images/fork/01-fork-button.png" width="1255" height="89" loading="lazy"
+                 alt="The repository's header on GitHub with the Fork button framed" data-i18n-alt="fork.1.alt">
+          </figure>
+        </li>
+        <li>
+          <h3 data-i18n="fork.2.h">Create the fork</h3>
+          <p data-i18n="fork.2.p">Leave the name as it is - <code>xgs-image-builder</code> - with
+          <strong>Copy the main branch only</strong> ticked, and press <strong>Create fork</strong>.</p>
+          <figure>
+            <img src="images/fork/02-create-fork.png" width="737" height="594" loading="lazy"
+                 alt="GitHub's Create a new fork form with Create fork framed; the account's name is blurred" data-i18n-alt="fork.2.alt">
+          </figure>
+        </li>
+        <li>
+          <h3 data-i18n="fork.3.h">Turn on its workflows</h3>
+          <p data-i18n="fork.3.p">GitHub turns workflows off on a new fork. In the fork, open
+          <strong>Actions</strong> and press <strong>I understand my workflows, go ahead and enable
+          them</strong>.</p>
+          <figure>
+            <img src="images/fork/03-enable-workflows.png" width="744" height="322" loading="lazy"
+                 alt="The fork's Actions tab saying workflows are not run on it, with the button that enables them framed" data-i18n-alt="fork.3.alt">
+          </figure>
+        </li>
+        <li>
+          <h3 data-i18n="fork.4.h">Publish its page</h3>
+          <p data-i18n="fork.4.p">In the fork, open <strong>Settings</strong>, then
+          <strong>Pages</strong>: under <em>Build and deployment</em>, choose the branch
+          <code>main</code> and the folder <code>/docs</code>, and press <strong>Save</strong>. A minute
+          later your page is at <code>https://your-account.github.io/xgs-image-builder/</code> - this
+          page, building in your account.</p>
+          <figure>
+            <img src="images/fork/04-pages.png" width="962" height="353" loading="lazy"
+                 alt="The fork's Pages settings: deploy from the branch main, the folder /docs, and Save framed" data-i18n-alt="fork.4.alt">
+          </figure>
+        </li>
+      </ol>
+    </div>
+  </section>
+
   <!-- How the image goes onto an appliance. It began as a temporary card beside the driver project's
        work-in-progress notice; the notice came off on 2026-10-18 and the steps stay, because they are
        the one place that says how an image is installed. -->
   <section class="card install" id="install_steps">
-    <div class="card-head"><h2>Installing the image</h2></div>
+    <div class="card-head"><h2 data-i18n="install.h">Installing the image</h2></div>
     <div class="card-body">
       <ol class="steps">
-        <li><strong>Unpack it.</strong> The download is a zip holding one <code>.img.xz</code>.
+        <li data-i18n="install.1"><strong>Unpack it.</strong> The download is a zip holding one <code>.img.xz</code>.
         Unzip it, then decompress the <code>.xz</code> - 7-Zip on Windows, <code>xz -d</code>
         elsewhere - to get the <code>.img</code>.</li>
-        <li><strong>Write it to a USB stick</strong> of 4 GB or more with a raw image writer -
+        <li data-i18n="install.2"><strong>Write it to a USB stick</strong> of 4 GB or more with a raw image writer -
         Rufus in DD mode, balenaEtcher, or <code>dd</code>. Everything on the stick is replaced.</li>
-        <li><strong>Connect the serial console</strong> at the speed chosen on this page - 115200
+        <li data-i18n="install.3"><strong>Connect the serial console</strong> at the speed chosen on this page - 115200
         or 38400 - 8 data bits, no parity, 1 stop bit, no flow control. An image built before
         2026-10-16 at 38400 prints its login prompt at 115200; build it again.</li>
-        <li><strong>Boot from the stick:</strong> put it in a USB port, power on, and choose it
+        <li data-i18n="install.4"><strong>Boot from the stick:</strong> put it in a USB port, power on, and choose it
         in the boot menu or put it first in the boot order.</li>
-        <li><strong>The first boot runs from the stick</strong> and installs the driver and the
+        <li data-i18n="install.5"><strong>The first boot runs from the stick</strong> and installs the driver and the
         plugins into the running system (the log is
         <code>/usr/local/share/xgs-image/firstboot.log</code>). Wait for the login prompt. The
         front ports are not there yet: the driver is loaded from the next boot on.</li>
-        <li><strong>Install to the appliance's disk:</strong> log in as <code>installer</code>
+        <li data-i18n="install.6"><strong>Install to the appliance's disk:</strong> log in as <code>installer</code>
         with the password <code>opnsense</code> and follow the installer. The disk chosen is
         erased - on an XGS the internal disk holds the vendor's firmware. When it finishes, take
         the stick out and reboot.</li>
-        <li><strong>The first boot from the disk counts thirty seconds down</strong> on the
+        <li data-i18n="install.7"><strong>The first boot from the disk counts thirty seconds down</strong> on the
         console: "XGS: assigning the front ports by the names on the chassis". Let it run out and
         the ports are assigned by the names printed on the chassis; press any key to assign them
         by hand from the console menu. Automatically:
@@ -766,12 +910,12 @@
             on <strong>192.168.100.1/24</strong> with DHCP.</li>
           </ul>
         </li>
-        <li><strong>Connect:</strong> <code>https://192.168.1.1</code> from any LAN port, or
+        <li data-i18n="install.8"><strong>Connect:</strong> <code>https://192.168.1.1</code> from any LAN port, or
         <code>https://192.168.100.1</code> from the management port, and log in as
         <code>root</code> / <code>opnsense</code> - then change that password. The management port
         you installed through answers on 192.168.100.1 from this boot on, not on 192.168.1.1.</li>
-        <li><strong>Updates:</strong> the driver from <del>System - Firmware - XGS Coprocessor</del>
-        XGS Coprocessor - Updates, which offers its releases; the
+        <li data-i18n="install.9"><strong>Updates:</strong> the driver from <del>System - Firmware - XGS Coprocessor</del>
+        <del>XGS Coprocessor - Updates</del> XGS - Updates, which offers its releases; the
         translation, the layout and the plugins follow their own releases by themselves, once a
         day.</li>
       </ol>
@@ -782,19 +926,21 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <p>This page loads nothing from anywhere and carries no credential of its own. It never
+      <p data-i18n="foot.1">This page loads its own files and, from npuforge.org, the newest release's number - nothing
+      else - and carries no credential of its own. It never
       asks you for one either: pressing <kbd>Submit new issue</kbd> on GitHub is what authenticates
       you, and the page simply waits for what that produces. A token is offered only for a private
       fork, where reading the run anonymously gets nothing - and that token is yours, sent to
       <code>api.github.com</code> and nowhere else.</p>
-      <p>The finished image is a workflow <strong>artifact</strong> that expires after seven days,
+      <p data-i18n="foot.2">The finished image is a workflow <strong>artifact</strong> that expires after seven days,
       not a release. Builds run in the account that owns the repository.</p>
     </div>
     <nav aria-label="More">
-      <a id="lnk_readme2" href="https://github.com/AbdelmonemAwad/xgs-image-builder#readme">Documentation</a>
-      <a id="lnk_contrib" href="https://github.com/AbdelmonemAwad/xgs-image-builder/blob/main/CONTRIBUTING.md">Why it works this way</a>
-      <a id="lnk_runs2" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml">Past and running builds</a>
-      <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">The driver project</a>
+      <a href="https://npuforge.org" data-i18n="foot.site">npuforge.org - the project's site</a>
+      <a id="lnk_readme2" href="https://github.com/AbdelmonemAwad/xgs-image-builder#readme" data-i18n="foot.docs">Documentation</a>
+      <a id="lnk_contrib" href="https://github.com/AbdelmonemAwad/xgs-image-builder/blob/main/CONTRIBUTING.md" data-i18n="foot.why">Why it works this way</a>
+      <a id="lnk_runs2" href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml" data-i18n="foot.runs">Past and running builds</a>
+      <a href="https://github.com/AbdelmonemAwad/os-xgs-npu" data-i18n="foot.driver">The driver project</a>
     </nav>
   </div>
 </footer>
@@ -802,6 +948,23 @@
 <script>
 (function () {
   "use strict";
+
+  /* The language. English is the page as written; Arabic comes from i18n/ar.json - "html" by an
+     element's data-i18n key, "text" by the English of a message the script writes, and "patterns"
+     for the messages with a number or a name inside, whose captured parts are looked up in turn.
+     Until the file is read, and wherever it has no entry, the English stands. */
+  var LS_LANG = "xgs.lang";
+  var LANG = "en", AR = null;
+  function T(s) {
+    if (LANG !== "ar" || !AR || !s) { return s; }
+    if (AR.text && Object.prototype.hasOwnProperty.call(AR.text, s)) { return AR.text[s]; }
+    var pats = AR.patterns || [];
+    for (var i = 0; i < pats.length; i++) {
+      var m = new RegExp(pats[i][0]).exec(s);
+      if (m) { return pats[i][1].replace(/\$(\d)/g, function (_, n) { return T(m[+n] || ""); }); }
+    }
+    return s;
+  }
 
   /* Written the way GitHub writes it, because it is shown to the reader. Comparisons against it
      are case-folded: a repository path is case-insensitive to GitHub but not to ===. */
@@ -832,23 +995,30 @@
   FIELDS.forEach(function (n) { el[n] = document.getElementById(n); });
   function id(n) { return document.getElementById(n); }
 
-  /* Every link follows whichever repository this page belongs to. */
-  ["lnk_readme", "lnk_readme2"].forEach(function (n) { id(n).href = base + "#readme"; });
-  ["lnk_runs", "lnk_runs2"].forEach(function (n) { id(n).href = base + "/actions/workflows/build.yml"; });
-  id("lnk_src").href = base;
-  id("lnk_contrib").href = base + "/blob/main/CONTRIBUTING.md";
-  if (id("fork_link")) { id("fork_link").href = base + "/fork"; }
+  /* Every link follows whichever repository this page belongs to - again after a change of
+     language, which writes the elements holding some of them anew. */
+  function setLinks() {
+    ["lnk_readme", "lnk_readme2"].forEach(function (n) { id(n).href = base + "#readme"; });
+    ["lnk_runs", "lnk_runs2"].forEach(function (n) { id(n).href = base + "/actions/workflows/build.yml"; });
+    id("lnk_src").href = base;
+    id("lnk_contrib").href = base + "/blob/main/CONTRIBUTING.md";
+    if (id("fork_link")) { id("fork_link").href = base + "/fork"; }
+  }
+  setLinks();
 
   /* The repository name comes out of the URL, so it is never written as markup - a path segment
      that happened to contain a tag would otherwise end up executing. */
   var target = id("target");
-  target.textContent = detected ? "Files on " : "Will file on ";
-  target.appendChild(document.createElement("b")).textContent = repo;
-  if (!detected) {
-    target.className = "target guessed";
-    target.title = "This page is not served from a user.github.io/<repo> URL, so the repository "
-      + "could not be read from it. Falling back to the original.";
+  function showTarget() {
+    target.textContent = T(detected ? "Files on " : "Will file on ");
+    target.appendChild(document.createElement("b")).textContent = repo;
+    if (!detected) {
+      target.className = "target guessed";
+      target.title = T("This page is not served from a user.github.io/<repo> URL, so the repository "
+        + "could not be read from it. Falling back to the original.");
+    }
   }
+  showTarget();
 
   /* The build declines anyone who does not own the repository. Say so here rather than let the
      reader find out from a workflow comment after the fact. */
@@ -878,18 +1048,18 @@
 
   function refresh() {
     var v = values();
-    id("type_hint").textContent = TYPE_HINT[v.image_type] || "";
-    id("speed_hint").textContent = v.console_speed === "38400"
+    id("type_hint").textContent = T(TYPE_HINT[v.image_type] || "");
+    id("speed_hint").textContent = T(v.console_speed === "38400"
       ? "Set your terminal to 38400 8N1. This is what the Sophos firmware used, so a session that "
         + "already worked with it keeps working."
       : "Set your terminal to 115200 8N1. If a session that worked with the Sophos firmware now "
-        + "shows nothing, that firmware was at 38400 - come back and pick it.";
+        + "shows nothing, that firmware was at 38400 - come back and pick it.");
 
     id("sum_release").textContent = "OPNsense " + v.opnsense_version;
     id("sum_type").textContent = TYPE_SHORT[v.image_type] || v.image_type;
-    id("sum_console").textContent = v.serial_console === "yes" ? "Serial port only" : "Serial and video";
-    id("sum_speed").textContent = v.console_speed + " baud";
-    id("sum_ref").textContent = v.project_ref || "(empty)";
+    id("sum_console").textContent = T(v.serial_console === "yes" ? "Serial port only" : "Serial and video");
+    id("sum_speed").textContent = T(v.console_speed + " baud");
+    id("sum_ref").textContent = v.project_ref || T("(empty)");
     id("json").textContent = JSON.stringify(v, null, 2);
     id("copied").textContent = "";
   }
@@ -930,7 +1100,7 @@
 
     var startedAt = Date.now();
     stopWatching();
-    liveLog.textContent = LOG_LABEL;
+    liveLog.textContent = T(LOG_LABEL);
     liveLog.href = base + "/actions/workflows/build.yml";
     say("working", "Waiting for you",
         "Press " + String.fromCharCode(8220) + "Submit new issue" + String.fromCharCode(8221)
@@ -947,7 +1117,7 @@
           "This browser blocked the new tab. Open the request yourself and press Submit - this "
           + "page will pick the build up from there.", "", startedAt);
       liveLog.href = url;
-      liveLog.textContent = "Open the request on GitHub";
+      liveLog.textContent = T("Open the request on GitHub");
       show(liveLog, true);
     }
     watchIssue(buildId, startedAt, null);
@@ -1050,6 +1220,7 @@
 
   function show(el, on) { el.className = el.className.replace(/\s*\bhidden\b/g, "") + (on ? "" : " hidden"); }
 
+  var lastSay = null;          /* what the card says, in English, to say again in another language */
   function say(state, headline, detail, err, runningSince) {
     live.setAttribute("data-state", state);
     /* The clock runs only while something is happening. A build that made its image gets the
@@ -1058,9 +1229,10 @@
     if (state !== "working" && topbar.className.indexOf("hidden") < 0) {
       progress(state === "done" ? 4 : lastStage, state === "done" ? 100 : lastPct, headline, state);
     }
-    liveState.textContent = headline;
-    liveDetail.textContent = detail || "";
-    liveErr.textContent = err || "";
+    lastSay = [headline, detail, err];
+    liveState.textContent = T(headline);
+    liveDetail.textContent = T(detail || "");
+    liveErr.textContent = T(err || "");
     show(liveErr, !!err);
     show(liveCard, true);
     show(id("actions"), false);
@@ -1085,7 +1257,7 @@
     liveClock.textContent = "";
     liveClock.appendChild(document.createTextNode(text));
     liveClock.appendChild(document.createElement("span")).className = "unit";
-    liveClock.lastChild.textContent = unit || (mm ? "elapsed" : "seconds");
+    liveClock.lastChild.textContent = T(unit || (mm ? "elapsed" : "seconds"));
     topClock.textContent = mm ? text : "0:" + (ss < 10 ? "0" : "") + ss;
   }
 
@@ -1110,7 +1282,7 @@
      completion stamp. */
   var topbar = id("topbar"), topFill = id("topbar_fill"), topTrack = id("topbar_bar");
   var topStep = id("topbar_step"), topPct = id("topbar_pct"), topClock = id("topbar_clock");
-  var lastStage = 0, lastPct = 0;
+  var lastStage = 0, lastPct = 0, lastTop = "";
 
   function progress(stage, pct, text, state) {
     state = state || "working";
@@ -1126,9 +1298,10 @@
     }
     topFill.style.width = pct + "%";
     topTrack.setAttribute("aria-valuenow", String(pct));
-    topTrack.setAttribute("aria-valuetext", pct + "% - " + (text || ""));
+    lastTop = text || "";
+    topTrack.setAttribute("aria-valuetext", pct + "% - " + T(text || ""));
     topPct.textContent = pct + "%";
-    topStep.textContent = text || "";
+    topStep.textContent = T(text || "");
     show(topbar, true);
     rail(state === "done" ? 4 : 2);
   }
@@ -1224,7 +1397,7 @@
     stopClock();
     liveClock.textContent = "";
     topClock.textContent = "";
-    liveLog.textContent = LOG_LABEL;
+    liveLog.textContent = T(LOG_LABEL);
     store(LS_RUN, null);
     show(topbar, false);
     rail(1);
@@ -1255,7 +1428,7 @@
             if ((list[i].body || "").indexOf(buildId) >= 0) {
               /* Filed. From here the comment on it is what we are waiting for. */
               liveLog.href = list[i].html_url;
-              liveLog.textContent = "Open the request on GitHub";
+              liveLog.textContent = T("Open the request on GitHub");
               show(liveLog, true);
               watchIssue(buildId, startedAt, list[i].number);
               return;
@@ -1634,7 +1807,7 @@
     req.build_id = buildId;
 
     stopWatching();
-    liveLog.textContent = LOG_LABEL;
+    liveLog.textContent = T(LOG_LABEL);
     say("working", "Starting", "Asking GitHub who you are.", "", startedAt);
     progress(0, 2, "Asking GitHub who you are");
 
@@ -1689,8 +1862,8 @@
     var req = compose(null);
     var said = id("copied");
     if (!req) { return; }
-    function ok() { said.textContent = "Copied. Paste it into the body of a new issue here - the block is what identifies it."; }
-    function no() { said.textContent = "Could not copy - open the block above and select it."; }
+    function ok() { said.textContent = T("Copied. Paste it into the body of a new issue here - the block is what identifies it."); }
+    function no() { said.textContent = T("Could not copy - open the block above and select it."); }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(req.body).then(ok, no);
       return;
@@ -1708,6 +1881,85 @@
       if (done) { ok(); } else { no(); }
     } catch (e) { no(); }
   });
+
+  /* --- the language ------------------------------------------------------------------------ */
+  var english = {}, englishAttr = {}, englishTitle = document.title;
+  function translateStatic() {
+    var els = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < els.length; i++) {
+      var key = els[i].getAttribute("data-i18n");
+      if (!Object.prototype.hasOwnProperty.call(english, key)) { english[key] = els[i].innerHTML; }
+      var ar = LANG === "ar" && AR && AR.html && AR.html[key];
+      els[i].innerHTML = ar || english[key];
+    }
+    [["data-i18n-alt", "alt"], ["data-i18n-aria", "aria-label"]].forEach(function (pair) {
+      var list = document.querySelectorAll("[" + pair[0] + "]");
+      for (var j = 0; j < list.length; j++) {
+        var k = list[j].getAttribute(pair[0]);
+        if (!Object.prototype.hasOwnProperty.call(englishAttr, k)) { englishAttr[k] = list[j].getAttribute(pair[1]); }
+        list[j].setAttribute(pair[1], (LANG === "ar" && AR && AR.html && AR.html[k]) || englishAttr[k]);
+      }
+    });
+    document.documentElement.lang = LANG;
+    document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+    document.title = (LANG === "ar" && AR && AR.title) || englishTitle;
+    var t = id("lang_toggle");
+    t.textContent = LANG === "ar" ? "English" : ((AR && AR.language) || "AR");
+    t.setAttribute("lang", LANG === "ar" ? "en" : "ar");
+    t.setAttribute("aria-label", LANG === "ar" ? "English" : ((AR && AR.language) || "Arabic"));
+  }
+
+  /* Everything written in one language is written again in the other: the page's own words, the
+     links inside them, the summary, the line under the buttons and whatever the build card says. */
+  function setLanguage(lang) {
+    LANG = lang === "ar" && AR ? "ar" : "en";
+    translateStatic();
+    setLinks();
+    refresh();
+    showTarget();
+    if (lastSay) {
+      liveState.textContent = T(lastSay[0]);
+      liveDetail.textContent = T(lastSay[1] || "");
+      liveErr.textContent = T(lastSay[2] || "");
+    }
+    if (lastTop) { topStep.textContent = T(lastTop); }
+  }
+
+  function loadArabic() {
+    if (AR) { return Promise.resolve(AR); }
+    return fetch("i18n/ar.json", { headers: { accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.html) { AR = d; } return AR; })
+      .catch(function () { return null; });
+  }
+
+  id("lang_toggle").addEventListener("click", function () {
+    var want = LANG === "ar" ? "en" : "ar";
+    loadArabic().then(function () {
+      setLanguage(want);
+      store(LS_LANG, LANG);
+    });
+  });
+
+  /* The reader's own choice, or else the browser's language. The file is read either way, so the
+     switch can name the other language in its own words. */
+  var chosen = recall(LS_LANG) || ((navigator.language || "").slice(0, 2).toLowerCase() === "ar" ? "ar" : "en");
+  translateStatic();
+  loadArabic().then(function () {
+    if (chosen === "ar") { setLanguage("ar"); } else { translateStatic(); }
+  });
+
+  /* --- the newest release, from npuforge.org ----------------------------------------------------
+     The one thing this page reads from anywhere else, and it is whole without it: the hero says
+     which os-xgs-npu release an image built now will carry. */
+  fetch("https://npuforge.org/api/project", { headers: { accept: "application/json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (p) {
+      if (!p || !p.release || !p.release.tag) { return; }
+      id("release_tag").textContent = p.release.tag;
+      id("release").hidden = false;
+    })
+    .catch(function () { /* the page is whole without it */ });
 })();
 </script>
 </body>

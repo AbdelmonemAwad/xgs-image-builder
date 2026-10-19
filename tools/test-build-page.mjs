@@ -28,7 +28,19 @@ import { dirname, join } from 'path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(HERE, '..', 'docs', 'index.html'), 'utf8');
-const srv = createServer((q, r) => { r.writeHead(200, {'content-type':'text/html; charset=utf-8'}); r.end(html); });
+// The page and, by their paths under it, the files beside it in docs/ - the Arabic catalogue, the
+// fonts, the pictures. Anything else is the page itself, as before.
+const DOCS = join(HERE, '..', 'docs');
+const TYPES = { '.json': 'application/json', '.woff2': 'font/woff2', '.png': 'image/png' };
+const srv = createServer((q, r) => {
+  const rel = decodeURIComponent(q.url.split('?')[0]).split('/').slice(2).join('/');
+  const ext = rel.slice(rel.lastIndexOf('.'));
+  if (rel && !rel.includes('..') && TYPES[ext]) {
+    try { const body = readFileSync(join(DOCS, rel)); r.writeHead(200, {'content-type': TYPES[ext]}); r.end(body); return; }
+    catch (e) { r.writeHead(404); r.end(); return; }
+  }
+  r.writeHead(200, {'content-type':'text/html; charset=utf-8'}); r.end(html);
+});
 await new Promise(r => srv.listen(8111, r));
 // The page reads the repository out of its own hostname, so the test has to be served from one
 // that looks like a Pages site. Chromium is told to resolve it to loopback rather than the test
@@ -463,6 +475,37 @@ for (const [conclusion, want] of [
   check('it comes back on reload', await p.inputValue('#token') === 'secret-one', await p.inputValue('#token'));
   await p.uncheck('#keep');
   check('unticking forgets it', await p.evaluate(() => localStorage.getItem('xgs.token')) === null, 'still stored');
+  await c.close();
+}
+
+// ---------------------------------------------------------------- 6. the page in Arabic
+// The words change and nothing else: the direction, the catalogue's words for the page's own and
+// for what the script writes, while the links still follow the repository and the choices keep
+// the values the workflow reads.
+{
+  const { p, c, seen } = await page(() => ({ status: 200, body: { workflow_runs: [] } }));
+  await p.click('#lang_toggle');
+  await p.waitForFunction(() => document.documentElement.dir === 'rtl', null, { timeout: 10000 });
+  const v = await p.evaluate(() => ({
+    dir: document.documentElement.dir, lang: document.documentElement.lang,
+    h1: document.querySelector('h1').textContent,
+    fork: document.getElementById('fork_link').getAttribute('href'),
+    opt: document.querySelector('#image_type option[value="serial"]').value,
+    sum: document.getElementById('sum_console').textContent,
+    toggle: document.getElementById('lang_toggle').textContent
+  }));
+  const arabic = t => /[\u0600-\u06ff]/.test(t);
+  check('the page turns right to left in Arabic', v.dir === 'rtl' && v.lang === 'ar', JSON.stringify(v));
+  check('its words come from the catalogue', arabic(v.h1), v.h1);
+  check('the link to fork still follows the repository', v.fork === 'https://github.com/someone/my-fork/fork', v.fork);
+  check('the choices keep the values the workflow reads', v.opt === 'serial', v.opt);
+  check('what the script writes is in Arabic too', arabic(v.sum), v.sum);
+  check('the switch names the way back', v.toggle === 'English', v.toggle);
+  check('changing the language asks GitHub nothing', seen.length === 0, seen.length + ' calls');
+  await p.click('#lang_toggle');
+  await p.waitForFunction(() => document.documentElement.dir === 'ltr', null, { timeout: 10000 });
+  const back = await p.evaluate(() => document.querySelector('h1').textContent);
+  check('and English comes back as it was', back === 'Build a bootable OPNsense image for a Sophos XGS', back);
   await c.close();
 }
 
