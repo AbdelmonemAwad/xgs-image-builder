@@ -2061,7 +2061,7 @@
 
   function readBuilds() {
     if (document.hidden && buildsData) { scheduleBuilds(); return; }
-    fetch("https://npuforge.org/api/builds?repo=" + encodeURIComponent(repo), { headers: { accept: "application/json" } })
+    fetch("https://npuforge.org/api/builds?repo=" + encodeURIComponent(repo), { cache: "no-cache", headers: { accept: "application/json" } })
       .then(function (r) { if (!r.ok) { throw new Error(String(r.status)); } return r.json(); })
       .then(function (d) { buildsDirect = false; return d; }, readDirect)
       .then(function (d) { buildsData = d; drawBuilds(); })
@@ -2149,7 +2149,7 @@
   /* --- the newest release, from npuforge.org ----------------------------------------------------
      The one thing this page reads from anywhere else, and it is whole without it: the hero says
      which os-xgs-npu release an image built now will carry. */
-  fetch("https://npuforge.org/api/project", { headers: { accept: "application/json" } })
+  fetch("https://npuforge.org/api/project", { cache: "no-cache", headers: { accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (p) {
       if (!p || !p.release || !p.release.tag) { return; }
