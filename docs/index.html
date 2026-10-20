@@ -542,6 +542,7 @@
 
   .forkhow { margin-top: 1.5rem; }
   .forkhow .lead { font-size: .92rem; color: var(--ink-2); margin-bottom: 1.3rem; max-width: 46rem; line-height: 1.65; }
+  .install .lead { font-size: .92rem; color: var(--ink-2); margin: 0 0 1rem; line-height: 1.65; }
   .fsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.6rem; counter-reset: f; }
   .fsteps > li { counter-increment: f; display: grid; grid-template-columns: 2.1rem minmax(0, 1fr); gap: .25rem .95rem; }
   .fsteps > li::before {
@@ -950,6 +951,8 @@
   <section class="card install" id="install_steps">
     <div class="card-head"><h2 data-i18n="install.h">Installing the image</h2></div>
     <div class="card-body">
+      <p class="lead" data-i18n="install.guide">Never done it before? <a href="https://npuforge.org/docs/guide/step-by-step/">Installing, step by step</a>
+      shows every step below with a picture - the USB stick, the console, the installer and the first sign-in.</p>
       <ol class="steps">
         <li data-i18n="install.1"><strong>Unpack it.</strong> The download is a zip holding one <code>.img.xz</code>.
         Unzip it, then decompress the <code>.xz</code> - 7-Zip on Windows, <code>xz -d</code>
