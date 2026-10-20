@@ -107,7 +107,8 @@
     "foot.driver": "مشروع التعريف",
     "builds.h": "البناءات على GitHub",
     "builds.aside": "كما تجري، من Actions هذا المستودع",
-    "builds.wait": "قراءة البناءات..."
+    "builds.wait": "قراءة البناءات...",
+    "install.guide": "أول مرة؟ صفحة <a href=\"https://npuforge.org/ar/guide/step-by-step/\">التثبيت خطوة بخطوة</a> تعرض كل خطوة أدناه بصورة: ذاكرة USB، والطرفية، والمثبّت، وأول تسجيل دخول."
   },
   "text": {
     "Files on ": "يرفع الطلب على ",
