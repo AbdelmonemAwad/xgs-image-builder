@@ -1,0 +1,5 @@
+# build.npuforge.org: the image builder page, in English and in Arabic (?lang=ar).
+User-agent: *
+Allow: /
+
+Sitemap: https://build.npuforge.org/sitemap.xml

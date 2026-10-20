@@ -3,9 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>XGS Image Builder</title>
+<title>XGS Image Builder - a bootable OPNsense image for Sophos XGS</title>
 <meta name="description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
 <meta name="color-scheme" content="light dark">
+<!-- For search engines and shared links. The page's address is build.npuforge.org, whatever copy
+     serves it - a fork's own page on github.io included - and its Arabic is the same page at
+     ?lang=ar, which the script reads. -->
+<link rel="canonical" href="https://build.npuforge.org/">
+<link rel="alternate" hreflang="en" href="https://build.npuforge.org/">
+<link rel="alternate" hreflang="ar" href="https://build.npuforge.org/?lang=ar">
+<link rel="alternate" hreflang="x-default" href="https://build.npuforge.org/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Abdelmonem Awad">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="npuforge">
+<meta property="og:title" content="XGS Image Builder - a bootable OPNsense image for Sophos XGS">
+<meta property="og:description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
+<meta property="og:url" content="https://build.npuforge.org/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="ar_AR">
+<meta property="og:image" content="https://npuforge.org/docs/images/hardware/bench/three-appliances-2026-10-17.jpg">
+<meta property="og:image:width" content="1599">
+<meta property="og:image:height" content="608">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="XGS Image Builder - a bootable OPNsense image for Sophos XGS">
+<meta name="twitter:description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
+<meta name="twitter:image" content="https://npuforge.org/docs/images/hardware/bench/three-appliances-2026-10-17.jpg">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@graph": [
+  {"@type": "WebPage", "@id": "https://build.npuforge.org/#page", "url": "https://build.npuforge.org/",
+   "name": "XGS Image Builder", "inLanguage": ["en", "ar"],
+   "description": "Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.",
+   "isPartOf": {"@type": "WebSite", "@id": "https://npuforge.org/#website", "name": "npuforge", "url": "https://npuforge.org/"},
+   "about": {"@id": "https://build.npuforge.org/#source"},
+   "author": {"@type": "Person", "name": "Abdelmonem Awad", "url": "https://github.com/AbdelmonemAwad"}},
+  {"@type": "SoftwareSourceCode", "@id": "https://build.npuforge.org/#source", "name": "xgs-image-builder",
+   "codeRepository": "https://github.com/AbdelmonemAwad/xgs-image-builder",
+   "description": "A GitHub Actions workflow and a web page that build a bootable OPNsense image for Sophos XGS appliances, with the os-xgs-npu driver and plugins in it.",
+   "programmingLanguage": ["Shell", "JavaScript"], "runtimePlatform": "GitHub Actions",
+   "keywords": "Sophos XGS, OPNsense, image builder, USB, bootable image, firewall"}
+]}
+</script>
 <!--
   A static page. It stores no credential of its own and loads nothing from a CDN - every style,
   icon and line of script below is in this file, and what is not (the IBM Plex fonts in fonts/, the
@@ -483,6 +521,25 @@
   /* ====================================================================
      Your own copy, step by step
      ==================================================================== */
+  /* The builds panel: a row a build, a bar under each one still going. */
+  .builds { margin-top: 1.5rem; }
+  .builds-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+  .builds-list:empty { display: none; }
+  .build { border: 1px solid var(--rule); border-radius: var(--r-md, 8px); padding: .7rem .85rem; background: var(--sunken); }
+  .build-row { display: flex; align-items: center; gap: .4rem .8rem; flex-wrap: wrap; font-size: .9rem; }
+  .build-num { font-family: var(--mono); font-weight: 600; }
+  .build-state { font-size: .78rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; border: 1px solid currentColor; }
+  .build-state.ok { color: var(--up); }
+  .build-state.bad { color: var(--stop); }
+  .build-state.run { color: var(--signal); }
+  .build-meta { color: var(--ink-3); font-size: .84rem; }
+  .build-row a { margin-inline-start: auto; font-size: .84rem; }
+  .build-bar { margin-top: .55rem; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+  .build-bar i { display: block; height: 100%; width: 0; background: var(--signal); transition: width .8s ease; }
+  .build-step { margin-top: .35rem; font-size: .82rem; color: var(--ink-2); }
+  .builds-note { margin: .6rem 0 0; font-size: .84rem; color: var(--ink-3); }
+  .builds-list:empty + .builds-note { margin-top: 0; }
+
   .forkhow { margin-top: 1.5rem; }
   .forkhow .lead { font-size: .92rem; color: var(--ink-2); margin-bottom: 1.3rem; max-width: 46rem; line-height: 1.65; }
   .fsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.6rem; counter-reset: f; }
@@ -814,6 +871,20 @@
 
     </div>
   </form>
+
+  <!-- Every build of this repository from its Actions: each one running with a bar that follows its
+       steps, and the last ones finished. Read from npuforge.org, which asks GitHub once for everybody
+       looking; from GitHub itself, slowly, when that does not answer. -->
+  <section class="card builds" id="builds_card">
+    <div class="card-head">
+      <h2 data-i18n="builds.h">Builds on GitHub</h2>
+      <span class="aside" data-i18n="builds.aside">as they run, from this repository's Actions</span>
+    </div>
+    <div class="card-body">
+      <ul class="builds-list" id="builds_list" aria-live="polite"></ul>
+      <p class="builds-note" id="builds_note" data-i18n="builds.wait">Reading the builds...</p>
+    </div>
+  </section>
 
   <!-- A fork of one's own, step by step, photographed on GitHub on 2026-10-20 with a fork made for
        the purpose; the account that made it is blurred out. -->
@@ -1882,6 +1953,126 @@
     } catch (e) { no(); }
   });
 
+  /* --- the builds panel ----------------------------------------------------------------------
+     Every build of this repository's build.yml: the running ones with a bar that moves with their
+     steps, each weighted by how long it took in the last build that succeeded (the guest's step is
+     nine minutes of ten), and the last ones finished. From npuforge.org/api/builds, which asks
+     GitHub once for everybody - every 15 s here while one runs, every 2 minutes when none does, and
+     not at all while the page is out of view. When npuforge.org does not answer, GitHub is asked
+     from here, the list alone and every 3 minutes, which an address's hourly allowance covers. */
+  var buildsList = id("builds_list"), buildsNote = id("builds_note");
+  var buildsTimer = null, buildsData = null, buildsDirect = false;
+
+  function shareOf(steps, w) {
+    var total = 0, got = 0, now = Date.now(), current = "", k = 0, n = 0;
+    var listed = (steps || []).filter(function (s) { return counts(s.name); });
+    n = listed.length;
+    listed.forEach(function (s, i) {
+      var wt = (w && w[s.name]) || 2;
+      total += wt;
+      if (s.status === "completed") { got += wt; return; }
+      if (s.status === "in_progress") {
+        var spent = s.started ? Math.max(0, (now - Date.parse(s.started)) / 1000) : 0;
+        got += Math.min(wt * 0.95, spent);
+        current = s.name; k = i + 1;
+      }
+    });
+    return { pct: total ? Math.round(got / total * 100) : 0, step: current, k: k, n: n };
+  }
+
+  function minutes(ms) {
+    var m = Math.max(0, Math.round(ms / 60000));
+    return m < 1 ? T("under a minute") : (m === 1 ? T("1 minute") : T(m + " minutes"));
+  }
+
+  function drawBuilds() {
+    var d = buildsData;
+    if (!d) { return; }
+    buildsList.textContent = "";
+    var runs = (d.runs || []).slice(0, 6);
+    runs.forEach(function (r) {
+      var li = document.createElement("li");
+      li.className = "build";
+      var row = li.appendChild(document.createElement("div"));
+      row.className = "build-row";
+      var num = row.appendChild(document.createElement("span"));
+      num.className = "build-num";
+      num.setAttribute("dir", "ltr");
+      num.textContent = "#" + r.number;
+      var state = row.appendChild(document.createElement("span"));
+      var meta = row.appendChild(document.createElement("span"));
+      meta.className = "build-meta";
+      var start = Date.parse(r.started || r.created);
+      if (r.status === "completed") {
+        var ok = r.conclusion === "success";
+        state.className = "build-state " + (ok ? "ok" : "bad");
+        state.textContent = T(ok ? "succeeded" : (r.conclusion === "cancelled" ? "cancelled" : "failed"));
+        meta.textContent = T("took ") + minutes(Date.parse(r.updated) - start) + " · " + (r.updated || "").slice(0, 10);
+      } else {
+        state.className = "build-state run";
+        state.textContent = T(r.status === "in_progress" ? "building" : "queued");
+        meta.textContent = T("running for ") + minutes(Date.now() - start);
+      }
+      var a = row.appendChild(document.createElement("a"));
+      a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = T("Open on GitHub");
+      if (r.status !== "completed") {
+        var s = shareOf(r.steps, d.weights || STEPS_SEEN);
+        var bar = li.appendChild(document.createElement("div"));
+        bar.className = "build-bar";
+        bar.setAttribute("role", "progressbar");
+        bar.setAttribute("aria-valuemin", "0");
+        bar.setAttribute("aria-valuemax", "100");
+        bar.setAttribute("aria-valuenow", String(s.pct));
+        bar.setAttribute("aria-label", T("How far build ") + "#" + r.number + T(" has got"));
+        bar.appendChild(document.createElement("i")).style.width = s.pct + "%";
+        var st = li.appendChild(document.createElement("p"));
+        st.className = "build-step";
+        st.textContent = s.step ? s.pct + "% · " + T("step " + s.k + " of " + s.n + ": ") + s.step
+                                : (r.steps ? s.pct + "%" : T("Waiting for a runner"));
+      }
+      buildsList.appendChild(li);
+    });
+    if (!runs.length) {
+      buildsNote.textContent = T("No build has run in this repository yet.");
+    } else {
+      buildsNote.textContent = T(d.stale || buildsDirect ? "As GitHub last gave it, " : "As of ")
+        + (d.at || new Date().toISOString()).slice(11, 16) + " UTC";
+    }
+  }
+
+  function scheduleBuilds() {
+    if (buildsTimer) { clearTimeout(buildsTimer); }
+    var running = buildsData && (buildsData.runs || []).some(function (r) { return r.status !== "completed"; });
+    buildsTimer = setTimeout(readBuilds, buildsDirect ? 180000 : (running ? 15000 : 120000));
+  }
+
+  function readDirect() {
+    buildsDirect = true;
+    return api("/repos/" + repo + "/actions/workflows/build.yml/runs?per_page=6", {}).then(function (res) {
+      if (res.status !== 200 || !res.data) { throw new Error("no"); }
+      return { repo: repo, at: new Date().toISOString(), weights: null,
+               runs: (res.data.workflow_runs || []).map(function (r) {
+                 return { id: r.id, number: r.run_number, url: r.html_url, status: r.status, conclusion: r.conclusion,
+                          created: r.created_at, started: r.run_started_at, updated: r.updated_at };
+               }) };
+    });
+  }
+
+  function readBuilds() {
+    if (document.hidden && buildsData) { scheduleBuilds(); return; }
+    fetch("https://npuforge.org/api/builds?repo=" + encodeURIComponent(repo), { headers: { accept: "application/json" } })
+      .then(function (r) { if (!r.ok) { throw new Error(String(r.status)); } return r.json(); })
+      .then(function (d) { buildsDirect = false; return d; }, readDirect)
+      .then(function (d) { buildsData = d; drawBuilds(); })
+      .catch(function () {
+        if (!buildsData) { buildsNote.textContent = T("GitHub's list of builds cannot be read just now."); }
+      })
+      .then(scheduleBuilds);
+  }
+  readBuilds();
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { readBuilds(); } });
+
   /* --- the language ------------------------------------------------------------------------ */
   var english = {}, englishAttr = {}, englishTitle = document.title;
   function translateStatic() {
@@ -1923,6 +2114,7 @@
       liveErr.textContent = T(lastSay[2] || "");
     }
     if (lastTop) { topStep.textContent = T(lastTop); }
+    drawBuilds();
   }
 
   function loadArabic() {
@@ -1943,7 +2135,12 @@
 
   /* The reader's own choice, or else the browser's language. The file is read either way, so the
      switch can name the other language in its own words. */
-  var chosen = recall(LS_LANG) || ((navigator.language || "").slice(0, 2).toLowerCase() === "ar" ? "ar" : "en");
+  /* ?lang=ar is the Arabic page's own address - the one search engines are given for it (hreflang in
+     the head) - and wins over a remembered choice; without it, the reader's own choice, or else the
+     browser's language. */
+  var asked = (new URLSearchParams(location.search).get("lang") || "").toLowerCase();
+  var chosen = (asked === "ar" || asked === "en") ? asked
+    : (recall(LS_LANG) || ((navigator.language || "").slice(0, 2).toLowerCase() === "ar" ? "ar" : "en"));
   translateStatic();
   loadArabic().then(function () {
     if (chosen === "ar") { setLanguage("ar"); } else { translateStatic(); }

@@ -53,10 +53,22 @@ const URL = 'http://someone.github.io:8111/my-fork/';
 const fails = [];
 const check = (name, cond, got) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  -> ' + got)); if (!cond) fails.push(name); };
 
-async function page(mock) {
+/* npuforge.org answers what the page reads from it - the release's number and the builds panel's
+   list - from here too, so a run never leaves the machine: by default no build at all. */
+const NO_BUILDS = { status: 200, body: { repo: 'someone/my-fork', runs: [], weights: null, at: '2026-10-20T01:00:00Z' } };
+async function page(mock, builds) {
   const c = await b.newContext({ viewport: { width: 1280, height: 1100 } });
   await c.route('https://github.com/**', r => r.fulfill({ status: 200,
     contentType: 'text/html', body: '<title>new issue</title>' }));
+  const asked = [];
+  await c.route('https://npuforge.org/**', async route => {
+    const u = route.request().url();
+    asked.push(u);
+    const res = u.includes('/api/builds') ? (builds || NO_BUILDS)
+      : { status: 200, body: { release: { tag: 'v0.1.0-alpha.2.2' } } };
+    await route.fulfill({ status: res.status, contentType: 'application/json',
+                          headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(res.body) });
+  });
   const p = await c.newPage();
   p.on('pageerror', e => { console.log('PAGEERROR: ' + e.message); fails.push('pageerror'); });
   const seen = [];
@@ -69,7 +81,7 @@ async function page(mock) {
                           body: res.body === undefined ? '{}' : JSON.stringify(res.body) });
   });
   await p.goto(URL, { waitUntil: 'load' });
-  return { p, c, seen };
+  return { p, c, seen, asked };
 }
 /* The token lives behind a disclosure now - the open route is the one offered first - so every
    token case has to open it the way a reader would. */
@@ -506,6 +518,59 @@ for (const [conclusion, want] of [
   await p.waitForFunction(() => document.documentElement.dir === 'ltr', null, { timeout: 10000 });
   const back = await p.evaluate(() => document.querySelector('h1').textContent);
   check('and English comes back as it was', back === 'Build a bootable OPNsense image for a Sophos XGS', back);
+  await c.close();
+}
+
+// ------------------------------------------------------------- 7. the builds panel
+// Every build of the repository, from npuforge.org: the one still going with a bar that follows its
+// steps, the finished ones with how they ended - and GitHub asked from here only when npuforge.org
+// does not answer.
+{
+  const now = Date.now(), iso = ms => new Date(ms).toISOString();
+  const RUNS = { status: 200, body: { repo: 'someone/my-fork', at: iso(now),
+    weights: { 'Set up job': 4, 'Inject, in a FreeBSD guest': 529, 'Run actions/upload-artifact@v4': 17 },
+    runs: [
+      { id: 3, number: 7, url: 'https://github.com/someone/my-fork/actions/runs/3', status: 'in_progress', conclusion: null,
+        created: iso(now - 240000), started: iso(now - 240000), updated: iso(now),
+        steps: [{ name: 'Set up job', status: 'completed', started: iso(now - 240000), completed: iso(now - 236000) },
+                { name: 'Inject, in a FreeBSD guest', status: 'in_progress', started: iso(now - 230000), completed: null },
+                { name: 'Run actions/upload-artifact@v4', status: 'queued', started: null, completed: null }] },
+      { id: 2, number: 6, url: 'https://github.com/someone/my-fork/actions/runs/2', status: 'completed', conclusion: 'success',
+        created: '2026-10-16T16:33:31Z', started: '2026-10-16T16:33:31Z', updated: '2026-10-16T16:43:01Z' },
+      { id: 1, number: 5, url: 'https://github.com/someone/my-fork/actions/runs/1', status: 'completed', conclusion: 'failure',
+        created: '2026-10-16T16:01:18Z', started: '2026-10-16T16:01:18Z', updated: '2026-10-16T16:04:00Z' }] } };
+  const { p, c, seen, asked } = await page(() => ({ status: 200, body: { workflow_runs: [] } }), RUNS);
+  await p.waitForFunction(() => document.querySelectorAll('#builds_list .build').length === 3, null, { timeout: 10000 });
+  const v = await p.evaluate(() => {
+    const rows = [...document.querySelectorAll('#builds_list .build')];
+    return { states: rows.map(r => r.querySelector('.build-state').textContent),
+             width: parseFloat(rows[0].querySelector('.build-bar i').style.width),
+             step: rows[0].querySelector('.build-step').textContent,
+             bars: rows.filter(r => r.querySelector('.build-bar')).length,
+             link: rows[1].querySelector('a').href };
+  });
+  check('the panel lists every build', v.states.join(',') === 'building,succeeded,failed', v.states.join(','));
+  check('the one still going has a bar, and only it', v.bars === 1, v.bars);
+  check('the bar follows the weighted steps', v.width > 30 && v.width < 60, v.width);
+  check('and names the step in hand', v.step.includes('step 2 of 3: Inject, in a FreeBSD guest'), v.step);
+  check('each build links to its run', v.link === 'https://github.com/someone/my-fork/actions/runs/2', v.link);
+  check('the panel reads its own repository', asked.some(u => u.includes('/api/builds?repo=someone%2Fmy-fork')), asked.join(' '));
+  check('and asks GitHub nothing while npuforge.org answers', seen.length === 0, seen.length + ' calls');
+  await p.click('#lang_toggle');
+  await p.waitForFunction(() => document.documentElement.dir === 'rtl', null, { timeout: 10000 });
+  const ar = await p.evaluate(() => [...document.querySelectorAll('#builds_list .build-state')].map(e => e.textContent).join(',')
+    + ' | ' + document.querySelector('#builds_list .build-step').textContent);
+  check('the panel speaks Arabic with the page', /[\u0600-\u06ff]/.test(ar) && ar.includes('Inject, in a FreeBSD guest'), ar);
+  await c.close();
+}
+{
+  const { p, c, seen } = await page(() => ({ status: 200, body: { workflow_runs: [
+    { id: 9, run_number: 3, html_url: 'https://github.com/someone/my-fork/actions/runs/9', status: 'completed', conclusion: 'success',
+      created_at: '2026-10-16T14:16:34Z', run_started_at: '2026-10-16T14:16:34Z', updated_at: '2026-10-16T14:26:00Z' }] } }),
+    { status: 503, body: { error: 'GitHub did not answer' } });
+  await p.waitForFunction(() => document.querySelectorAll('#builds_list .build').length === 1, null, { timeout: 10000 });
+  check('without npuforge.org it reads GitHub once, the list alone',
+        seen.length === 1 && seen[0].url.includes('/actions/workflows/build.yml/runs'), seen.map(x => x.url).join(' '));
   await c.close();
 }
 

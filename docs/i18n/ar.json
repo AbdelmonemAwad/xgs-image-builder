@@ -104,7 +104,10 @@
     "foot.docs": "التوثيق",
     "foot.why": "لماذا يعمل بهذه الطريقة",
     "foot.runs": "عمليات البناء السابقة والجارية",
-    "foot.driver": "مشروع التعريف"
+    "foot.driver": "مشروع التعريف",
+    "builds.h": "البناءات على GitHub",
+    "builds.aside": "كما تجري، من Actions هذا المستودع",
+    "builds.wait": "قراءة البناءات..."
   },
   "text": {
     "Files on ": "يرفع الطلب على ",
@@ -195,7 +198,24 @@
     "create a repository for you": "إنشاء مستودع لك",
     "dispatch a workflow": "تشغيل سير عمل",
     "Copied. Paste it into the body of a new issue here - the block is what identifies it.": "نُسخ. الصقه في نص بلاغ جديد هنا - هذه الكتلة هي ما يعرّفه.",
-    "Could not copy - open the block above and select it.": "تعذّر النسخ - افتح الكتلة أعلاه وحدّدها."
+    "Could not copy - open the block above and select it.": "تعذّر النسخ - افتح الكتلة أعلاه وحدّدها.",
+    "under a minute": "أقل من دقيقة",
+    "1 minute": "دقيقة واحدة",
+    "succeeded": "نجح",
+    "failed": "فشل",
+    "cancelled": "أُلغي",
+    "building": "يُبنى",
+    "queued": "في الانتظار",
+    "took ": "استغرق ",
+    "running for ": "يعمل منذ ",
+    "Open on GitHub": "افتحه على GitHub",
+    "How far build ": "إلى أين وصل البناء ",
+    " has got": "",
+    "Waiting for a runner": "بانتظار جهاز تشغيل",
+    "No build has run in this repository yet.": "لم يجرِ أي بناء في هذا المستودع بعد.",
+    "As GitHub last gave it, ": "كما أعطاه GitHub آخر مرة، ",
+    "As of ": "حتى الساعة ",
+    "GitHub's list of builds cannot be read just now.": "لا يمكن قراءة قائمة البناءات من GitHub الآن."
   },
   "patterns": [
     ["^(.+) Forking makes a new repository, so a fine-grained token has to cover that, not only this one repository\\.$", "$1 الفورك ينشئ مستودعًا جديدًا، فيجب أن يشمل المفتاح الدقيق ذلك، لا هذا المستودع وحده."],
@@ -217,6 +237,10 @@
     ["^(.+) - step (\\d+) of (\\d+)$", "$1 - الخطوة $2 من $3"],
     ["^(\\d+) baud$", "$1 baud"],
     ["^(\\d+)m (\\d+)s$", "$1 د $2 ث"],
-    ["^(\\d+)s$", "$1 ث"]
+    ["^(\\d+)s$", "$1 ث"],
+    ["^2 minutes$", "دقيقتان"],
+    ["^([3-9]|10) minutes$", "$1 دقائق"],
+    ["^(\\d+) minutes$", "$1 دقيقة"],
+    ["^step (\\d+) of (\\d+): $", "الخطوة $1 من $2: "]
   ]
 }
