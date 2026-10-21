@@ -67,10 +67,14 @@ against from its own URL, so your fork's page files on your fork and builds in y
 page is live once Pages is turned on for that repository - step 2 below.
 
 > [!WARNING]
-> ~~**Nothing built here has been booted on an appliance.**~~ **One image built here has been
-> installed on an appliance**: OPNsense 26.7, serial, 38400 baud, on an XGS 3300 (2026-10-16), which
-> then assigned its own front ports at its first boot from disk. No other combination has been
-> booted. The build runs on a GitHub runner, which has no Sophos hardware attached to it and never
+> ~~**Nothing built here has been booted on an appliance.**~~ ~~**One image built here has been
+> installed on an appliance**~~ **Two images built here have been installed, one on each family**:
+> OPNsense 26.7, serial, 38400 baud, on an XGS 3300 (2026-10-16), which then assigned its own front
+> ports at its first boot from disk; and OPNsense 26.7, serial, 115200 baud, on an XGS 136
+> (2026-10-21), its front ports up at the first boot, then updated to 26.7.7 from the GUI - the
+> reboot held until the driver was built for the new kernel - and its configuration restored
+> ([measured](https://github.com/AbdelmonemAwad/os-xgs-npu/blob/main/docs/measurements/image-136-2026-10-21.md)).
+> No other combination has been booted. The build runs on a GitHub runner, which has no Sophos hardware attached to it and never
 > will. Burn an image and boot it before relying on it.
 
 ## How it is meant to be used
