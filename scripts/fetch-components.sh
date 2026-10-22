@@ -2,8 +2,10 @@
 #-
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Clone every repository components.list names into <dest>/<name>, each at the ref the list gives,
-# and record which commit came: one line per component in <dest>/STAMPS, also printed.
+# Fetch every repository components.list names into <dest>/<name>, each at the ref the list gives -
+# the archive of that commit, as fetch-project.sh takes it, so what a repository marks export-ignore
+# stays out of the image - and record which commit came: one line per component in <dest>/STAMPS,
+# also printed.
 #
 # The same rule as fetch-project.sh, and for the same reason: nothing here is a copy of those
 # projects. A vendored second copy goes stale and nobody notices.
