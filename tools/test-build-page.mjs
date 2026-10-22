@@ -436,6 +436,27 @@ for (const [conclusion, want] of [
   await ctx.c.close();
 }
 
+// a job that has ended while GitHub still calls its run in progress (build 10, 2026-10-22): the
+// job's ending is the build's, and the clock stops
+{
+  let bid = null;
+  const ctx = await openRoute((req) => {
+    const u = req.url();
+    if (u.includes('/issues?')) return { status: 200, body: [{ number: 9, body: 'x ' + bid, html_url: 'u' }] };
+    if (u.includes('/issues/9/comments')) return { status: 200, body: [{ body: STARTED }] };
+    if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs: [{ id: 4, name: bid, display_title: bid }] } };
+    if (u.includes('/runs/4/jobs')) return { status: 200, body: { jobs: [{ status: 'completed', conclusion: 'failure',
+      steps: [{ name: 'Inject, in a FreeBSD guest', status: 'completed', conclusion: 'failure' }] }] } };
+    return { status: 200, body: { status: 'in_progress', conclusion: null } };
+  });
+  bid = ctx.bid;
+  await ctx.p.waitForFunction(() => document.getElementById('live').dataset.state === 'failed', null, { timeout: 40000 });
+  const v = await live(ctx.p);
+  check('a job that ended is the build ended, whatever the run says', v.head === 'The build failed', v.head);
+  check('and its clock stops', v.clock === '', v.clock);
+  await ctx.c.close();
+}
+
 // ---------------------------------------------------------------- 4. the token route still works
 {
   const { p, c } = await page(() => ({ status: 200, body: {} }));

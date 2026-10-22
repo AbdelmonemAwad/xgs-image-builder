@@ -1677,7 +1677,13 @@
         artifact(token, runId, startedAt, target, up.completed_at ? Date.parse(up.completed_at) : null, 0);
         return;
       }
-      if (!job || job.status !== "in_progress") { runState(token, runId, startedAt, target); return; }
+      /* A build is its one job, and GitHub can leave the run in progress long after the job has
+         ended (build 10, 2026-10-22: eleven minutes and counting), so an ended job is the answer. */
+      if (!job || job.status !== "in_progress") {
+        runState(token, runId, startedAt, target,
+                 job && job.status === "completed" ? (job.conclusion || "neutral") : null);
+        return;
+      }
       var b = building(steps);
       say("working", "Building",
           "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
@@ -1695,14 +1701,14 @@
     });
   }
 
-  function runState(token, runId, startedAt, target) {
+  function runState(token, runId, startedAt, target, jobEnded) {
     api("/repos/" + target + "/actions/runs/" + runId, { token: token }).then(function (res) {
       if (res.status !== 200) {
         say("failed", "Lost track of the run", "", explain(res, "read Actions"));
         show(liveClear, true);
         return;
       }
-      var run = res.data;
+      var run = jobEnded ? { status: "completed", conclusion: jobEnded } : res.data;
       if (run.status !== "completed") {
         say("working", run.status === "in_progress" ? "Building" : "Queued",
             "It takes a while: the image is downloaded, verified, opened in a FreeBSD guest and "
