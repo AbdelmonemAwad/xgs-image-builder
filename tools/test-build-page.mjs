@@ -377,6 +377,30 @@ async function openRoute(mock) {
   await ctx.c.close();
 }
 
+// an acceptance after a slow Submit, the run not listed yet: still waited for, not "never appeared"
+// (the page's clock is moved on four minutes, the time a reader took on the issue form on
+// 2026-10-22, when the page gave up at its first look while the build was running)
+{
+  let bid = null, filed = false;
+  const ctx = await openRoute((req) => {
+    const u = req.url();
+    if (u.includes('/issues?')) return { status: 200, body: filed ? [{ number: 9, body: bid, html_url: 'u' }] : [] };
+    if (u.includes('/issues/9/comments')) return { status: 200, body: [{ body: STARTED }] };
+    if (u.includes('/actions/runs?')) return { status: 200, body: { workflow_runs: [] } };
+    return { status: 404, body: { message: 'unexpected ' + u } };
+  });
+  bid = ctx.bid;
+  await ctx.p.evaluate(() => { const real = Date.now; window.__skew = 0; Date.now = () => real() + window.__skew; });
+  await ctx.p.waitForTimeout(300);
+  await ctx.p.evaluate(() => { window.__skew = 4 * 60 * 1000; });
+  filed = true;
+  await ctx.p.waitForFunction(() => document.getElementById('live_state').textContent === 'Queued', null, { timeout: 40000 });
+  await ctx.p.waitForTimeout(1000);
+  const v = await live(ctx.p);
+  check('a slow Submit still waits for its run', v.state === 'working' && v.head === 'Queued', JSON.stringify(v));
+  await ctx.c.close();
+}
+
 // ---------------------------------------------------------------- 3c. the anonymous allowance
 {
   const ctx = await openRoute(() => ({ status: 403, body: { message: 'API rate limit exceeded' } }));

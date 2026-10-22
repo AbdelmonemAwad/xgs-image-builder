@@ -1586,9 +1586,14 @@
   }
 
   /* --- find the run this page started ------------------------------- */
-  function findRun(token, buildId, startedAt, waitingFor, target) {
+  function findRun(token, buildId, startedAt, waitingFor, target, waitFrom) {
     target = target || repo;
     var elapsed = Date.now() - startedAt;
+    /* The time allowed is counted from the first look for the run, not from when the page started:
+       a request filed as an issue reaches here only after a person has pressed Submit, which can
+       take longer than the whole allowance, and the run list can lag the run by a few seconds. */
+    waitFrom = waitFrom || Date.now();
+    var waited = Date.now() - waitFrom;
     api("/repos/" + target + "/actions/runs?event=workflow_dispatch&per_page=30", { token: token })
       .then(function (res) {
         if (res.status !== 200) {
@@ -1617,7 +1622,7 @@
         /* A dispatch starts in seconds. An issue has to be submitted by a person first, so the
            page says what it is waiting for and gives them a quarter of an hour to do it. */
         var limit = waitingFor === "submit" ? 900000 : 180000;
-        if (elapsed > limit) {
+        if (waited > limit) {
           say("failed",
               waitingFor === "submit" ? "No request arrived" : "The run never appeared",
               waitingFor === "submit"
@@ -1639,8 +1644,9 @@
           say("working", "Queued", "Waiting for GitHub to start the run.", "", startedAt);
           progress(2, 8, "Waiting for GitHub to start the run");
         }
-        watching = setTimeout(function () { findRun(token, buildId, startedAt, waitingFor, target); },
-                              gap(token, elapsed));
+        watching = setTimeout(function () {
+          findRun(token, buildId, startedAt, waitingFor, target, waitFrom);
+        }, gap(token, elapsed));
       }, function () {
         say("failed", "Could not reach GitHub",
             "The request to api.github.com did not complete.", "");
