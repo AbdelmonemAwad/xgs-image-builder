@@ -2,7 +2,7 @@
 #-
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Clone os-xgs-npu at the ref the dropdown chose, into ./project.
+# Fetch os-xgs-npu at the ref the dropdown chose, and put the archive of that commit into ./project.
 #
 # Nothing here is a copy of that project. A vendored second copy goes stale and nobody notices,
 # which is the same reason the project itself does not vendor the kernel sources it builds against.
@@ -53,7 +53,20 @@ case ${REF} in
 v[0-9]*.[0-9]*.[0-9]*) FORMAT="%H %cI ${REF} %s" ;;
 *) FORMAT='%H %cI %s' ;;
 esac
-git -C "${DEST}" --no-pager log -1 --format="${FORMAT}" \
+STAMP=$(git -C "${DEST}" --no-pager log -1 --format="${FORMAT}" \
     | tr '\n\r' '  ' \
     | tr -d '\000-\010\013-\037\177' \
-    | cut -c1-200
+    | cut -c1-200)
+
+# What goes into the image is the commit's archive, not the clone: `git archive` leaves out what the
+# repository's .gitattributes marks export-ignore, so an image carries the same tree an appliance's
+# update downloads. For os-xgs-npu that is its documentation and photographs, its site, its workflows
+# and its repository tools - about forty megabytes that every image carried until 2026-10-22 and no
+# appliance reads. A repository that marks nothing gets its whole tree, as before, without .git.
+git -C "${DEST}" archive --format=tar HEAD > "${DEST}.tar"
+rm -rf "${DEST}"
+mkdir "${DEST}"
+tar -xf "${DEST}.tar" -C "${DEST}"
+rm -f "${DEST}.tar"
+
+printf '%s\n' "${STAMP}"
