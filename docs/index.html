@@ -2258,7 +2258,7 @@
   ];
 
   function readyKind(name) {
-    var m = /^xgs-opnsense-([0-9.]+)-serial-([0-9]+)(-front-panel)?\.img\.xz$/.exec(name);
+    var m = /^xgs-image-based-on-opnsense-([0-9.]+)-serial-([0-9]+)(-front-panel)?\.img\.xz$/.exec(name);
     if (!m) { return null; }
     for (var i = 0; i < READY_KINDS.length; i++) {
       if (READY_KINDS[i][0] === m[2] && READY_KINDS[i][1] === !!m[3]) {

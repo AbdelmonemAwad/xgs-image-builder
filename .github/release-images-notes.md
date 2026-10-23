@@ -1,13 +1,14 @@
-**Ready-made OPNsense images for Sophos XGS appliances**, with
-[os-xgs-npu @VERSION@](https://github.com/AbdelmonemAwad/os-xgs-npu/releases/tag/@TAG@) installed.
-Download one, write it to a USB stick, and boot the appliance from it.
+**XGS image - based on OPNsense 26.7, with
+[os-xgs-npu @VERSION@](https://github.com/AbdelmonemAwad/os-xgs-npu/releases/tag/@TAG@) preinstalled.**
+Ready-made for Sophos XGS appliances: download one, write it to a USB stick, and boot the appliance
+from it.
 
 | Image | For |
 |---|---|
-| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
-| `xgs-opnsense-26.7-serial-38400.img.xz` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
-| `xgs-opnsense-26.7-serial-115200-front-panel.img.xz` | the rack models, console at 115200 baud |
-| `xgs-opnsense-26.7-serial-115200.img.xz` | the desktop models, console at 115200 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-38400.img.xz` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-115200-front-panel.img.xz` | the rack models, console at 115200 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-115200.img.xz` | the desktop models, console at 115200 baud |
 
 Each image is for every model of its kind: it carries both drivers - ARMADA for the desktop models,
 OCTEON TX for the rack ones - and the kernel sources they are built from, and at its first boot the

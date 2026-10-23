@@ -64,14 +64,14 @@ const IMG = 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases/downlo
 const asset = (name, mb, digest) => ({ name, size: mb * 1048576, browser_download_url: IMG + name,
   digest: digest ? 'sha256:' + digest.repeat(64 / digest.length) : null });
 const READY = { status: 200, body: [
-  { tag_name: 'images-v0.1.0-alpha.5.7', draft: true, assets: [asset('xgs-opnsense-26.7-serial-38400.img.xz', 1, 'f')] },
+  { tag_name: 'images-v0.1.0-alpha.5.7', draft: true, assets: [asset('xgs-image-based-on-opnsense-26.7-serial-38400.img.xz', 1, 'f')] },
   { tag_name: 'images-v0.1.0-alpha.5.6', draft: false, published_at: '2026-10-24T02:10:00Z',
     html_url: 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases/tag/images-v0.1.0-alpha.5.6',
-    assets: [asset('xgs-opnsense-26.7-serial-115200.img.xz', 640, 'd'), asset('SHA256SUMS', 0),
-             asset('xgs-opnsense-26.7-serial-38400.img.xz', 612, 'b'),
-             asset('xgs-opnsense-26.7-serial-115200-front-panel.img.xz', 641, 'c'),
-             asset('xgs-opnsense-26.7-serial-38400-front-panel.img.xz', 613, 'a'),
-             asset('xgs-opnsense-26.7-vga-38400.img.xz', 650, 'e')] },
+    assets: [asset('xgs-image-based-on-opnsense-26.7-serial-115200.img.xz', 640, 'd'), asset('SHA256SUMS', 0),
+             asset('xgs-image-based-on-opnsense-26.7-serial-38400.img.xz', 612, 'b'),
+             asset('xgs-image-based-on-opnsense-26.7-serial-115200-front-panel.img.xz', 641, 'c'),
+             asset('xgs-image-based-on-opnsense-26.7-serial-38400-front-panel.img.xz', 613, 'a'),
+             asset('xgs-image-based-on-opnsense-26.7-vga-38400.img.xz', 650, 'e')] },
   { tag_name: 'images-v0.1.0-alpha.5.5', draft: false, assets: [] }] };
 async function page(mock, builds, ready) {
   const c = await b.newContext({ viewport: { width: 1280, height: 1100 } });
@@ -135,7 +135,7 @@ const live = p => p.evaluate(() => ({
     if (/\/actions\/runs\/7$/.test(u)) { runCalls++;
       return { status: 200, body: runCalls < 2 ? { status: 'in_progress' } : { status: 'completed', conclusion: 'success' } }; }
     if (u.includes('/artifacts')) return { status: 200, body: { artifacts: [
-      { id: 99, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 512 * 1024 * 1024 }] } };
+      { id: 99, name: 'xgs-image-based-on-opnsense-26.7-serial-115200', size_in_bytes: 512 * 1024 * 1024 }] } };
     return { status: 404, body: { message: 'unexpected ' + u } };
   });
   await openToken(p);
@@ -156,7 +156,7 @@ const live = p => p.evaluate(() => ({
   await p.waitForFunction(() => document.getElementById('live').getAttribute('data-state') === 'done', null, { timeout: 60000 });
   const v = await live(p);
   check('finishes in the done state', v.state === 'done' && v.head === 'Ready', JSON.stringify(v));
-  check('reports the artifact name and size', v.detail.includes('xgs-opnsense-26.7-serial-115200') && v.detail.includes('512 MB'), v.detail);
+  check('reports the artifact name and size', v.detail.includes('xgs-image-based-on-opnsense-26.7-serial-115200') && v.detail.includes('512 MB'), v.detail);
   check('says it was not booted', v.detail.includes('not been booted'), v.detail);
   check('offers the download link GitHub serves', v.dl === 'https://github.com/someone/my-fork/actions/runs/7/artifacts/99', v.dl);
   check('offers the run link', v.log === 'https://github.com/someone/my-fork/actions/runs/7', v.log);
@@ -185,7 +185,7 @@ const live = p => p.evaluate(() => ({
       { id: 3, name: bid, display_title: bid }] } };
     if (/\/actions\/runs\/3$/.test(u)) return { status: 200, body: { status: 'completed', conclusion: 'success' } };
     if (u.includes('/artifacts')) return { status: 200, body: { artifacts: [
-      { id: 8, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 390 * 1024 * 1024 }] } };
+      { id: 8, name: 'xgs-image-based-on-opnsense-26.7-serial-115200', size_in_bytes: 390 * 1024 * 1024 }] } };
     return { status: 404, body: { message: 'unexpected ' + m + ' ' + u } };
   });
   await openToken(p);
@@ -386,7 +386,7 @@ async function openRoute(mock) {
     if (/\/actions\/runs\/5$/.test(u)) return { status: 200, body: finished
       ? { status: 'completed', conclusion: 'success' } : { status: 'in_progress' } };
     if (u.includes('/artifacts')) return { status: 200, body: { artifacts: [
-      { id: 42, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
+      { id: 42, name: 'xgs-image-based-on-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
     return { status: 404, body: { message: 'unexpected ' + u } };
   });
   bid = ctx.bid;
@@ -513,7 +513,7 @@ for (const [conclusion, want] of [
       { number: 20, name: 'Post Run actions/checkout@v4', status: 'in_progress', started_at: iso(t0 + 3000) }] }] } };
     if (/\/actions\/runs\/6$/.test(u)) { runCalls++; return { status: 200, body: { status: 'in_progress' } }; }
     if (u.includes('/runs/6/artifacts')) return { status: 200, body: { artifacts: [
-      { id: 61, name: 'xgs-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
+      { id: 61, name: 'xgs-image-based-on-opnsense-26.7-serial-115200', size_in_bytes: 400 * 1024 * 1024 }] } };
     return { status: 404, body: { message: 'unexpected ' + u } };
   });
   await openToken(p);
@@ -662,10 +662,10 @@ for (const [conclusion, want] of [
   });
   check('four images, Sophos speed first, a file of no known kind left out', v.titles.join('|') ===
     '38400 baud, front panel|38400 baud, no front panel|115200 baud, front panel|115200 baud, no front panel', v.titles.join('|'));
-  check('each says which file and how big', v.files[0] === 'xgs-opnsense-26.7-serial-38400-front-panel.img.xz · 613 MB'
-    && v.files[3] === 'xgs-opnsense-26.7-serial-115200.img.xz · 640 MB', v.files.join(' | '));
+  check('each says which file and how big', v.files[0] === 'xgs-image-based-on-opnsense-26.7-serial-38400-front-panel.img.xz · 613 MB'
+    && v.files[3] === 'xgs-image-based-on-opnsense-26.7-serial-115200.img.xz · 640 MB', v.files.join(' | '));
   check('each carries its checksum', v.sums[1] === 'sha256 ' + 'b'.repeat(64), v.sums[1]);
-  check('each downloads its own file', v.links[2] === IMG + 'xgs-opnsense-26.7-serial-115200-front-panel.img.xz', v.links[2]);
+  check('each downloads its own file', v.links[2] === IMG + 'xgs-image-based-on-opnsense-26.7-serial-115200-front-panel.img.xz', v.links[2]);
   check('the published release, not the draft', v.meta.includes('v0.1.0-alpha.5.6') && !v.meta.includes('5.7'), v.meta);
   check('it names OPNsense and the day', v.meta.includes('OPNsense 26.7') && v.meta.includes('2026-10-24') && v.metaShown, v.meta);
   check('and links to the release notes', v.notes === READY.body[1].html_url, v.notes);

@@ -160,17 +160,27 @@ jobs:
             cat dist/SHA256SUMS
             printf '```\n'
           } >> /tmp/notes.md
-          set -- --title "XGS images with os-xgs-npu ${version} - based on OPNsense 26.7" \
-            --notes-file /tmp/notes.md -R "$REPO"
+          # The name committed to the OPNsense project when it was asked about these images: descriptive,
+          # "based on OPNsense", never a name made from OPNsense's own. The files carry it too.
+          title="XGS image - based on OPNsense 26.7, with os-xgs-npu ${version} preinstalled"
+          set -- --title "$title" --notes-file /tmp/notes.md -R "$REPO"
           if [ "$DRAFT" = yes ]; then
             set -- "$@" --draft
           else
             set -- "$@" --latest
           fi
-          # Built again, by hand or by a second push to a test branch: the same release, new files.
+          # Built again, by hand or by a second push to a test branch: the same release, new files -
+          # and a file it has that this build did not make goes, so it holds what SHA256SUMS lists and
+          # nothing else (the files named xgs-opnsense-... before 2026-10-24 among them).
           if gh release view "$NAME" -R "$REPO" > /dev/null 2>&1; then
             gh release upload "$NAME" dist/*.img.xz dist/SHA256SUMS --clobber -R "$REPO"
-            gh release edit "$NAME" --notes-file /tmp/notes.md -R "$REPO"
+            gh release view "$NAME" -R "$REPO" --json assets --jq '.assets[].name' | while read -r old; do
+              if [ "$old" != SHA256SUMS ] && [ ! -f "dist/$old" ]; then
+                gh release delete-asset "$NAME" "$old" -y -R "$REPO"
+                echo "removed $old, which this build did not make"
+              fi
+            done
+            gh release edit "$NAME" --title "$title" --notes-file /tmp/notes.md -R "$REPO"
           else
             gh release create "$NAME" dist/*.img.xz dist/SHA256SUMS --target "$GITHUB_SHA" "$@"
           fi

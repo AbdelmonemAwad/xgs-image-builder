@@ -186,7 +186,7 @@ jobs:
           FRONT_PANEL: ${{ inputs.front_panel }}
           PROJ_STAMP: ${{ steps.project.outputs.stamp }}
           # The front panel in the name: the two ready-made images of a release differ by it alone.
-          OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
+          OUT_NAME: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
         with:
           release: '14.2'
           sync: sshfs
@@ -296,7 +296,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
+          name: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
           path: '*.img.xz'
           retention-days: 7
           if-no-files-found: error
