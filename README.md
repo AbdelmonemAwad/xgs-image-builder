@@ -53,6 +53,30 @@ is the same build a fork runs, called with those values, so everything below abo
 image holds for them too. Any other combination is built from the page, in your own account. A
 release here says plainly whether its own files have been booted on an appliance.
 
+### Checking an image
+
+- **The download** against the release's `SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing`,
+  or on Windows `Get-FileHash .\<file>.img.xz -Algorithm SHA256`.
+- **Where it was built.** Every image built here since 2026-10-24 - the ready-made ones and a fork's
+  own - has a build attestation, signed through GitHub and kept by it, naming the repository, the
+  workflow and the commit it ran from:
+
+  ```
+  gh attestation verify <file>.img.xz -R AbdelmonemAwad/xgs-image-builder
+  ```
+
+  and for an image built in a fork, `-R <owner>/<fork>`. A private fork makes none: GitHub's free
+  plans keep attestations for public repositories only. An attestation says where a file came from,
+  not that it is good.
+- **What it was built from.** The official OPNsense image, its checksum checked against the list
+  OPNsense publishes before anything is added - the run's log shows both - and os-xgs-npu at the
+  commit the image records in `/usr/local/share/os-xgs-npu/source/.image-build`.
+- **The driver is not in it as a binary.** The appliance compiles it at its first boot, from the
+  source the image carries and against the kernel sources beside it.
+- **Not bit-for-bit reproducible.** The same build run twice gives two different files - the image's
+  file system records when each file was written - so the checksum and the attestation are the
+  checks, not a second build.
+
 ## The two appliances it builds for
 
 <picture>

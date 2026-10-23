@@ -88,6 +88,12 @@ jobs:
     name: ${{ inputs.opnsense_version }} ${{ inputs.image_type }} at ${{ inputs.console_speed }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # For the image's build attestation, below, and for nothing else: a short-lived token from
+    # GitHub's OIDC provider to sign it with, and the right to store it.
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
 
     steps:
       - uses: actions/checkout@v7
@@ -180,7 +186,7 @@ jobs:
           FRONT_PANEL: ${{ inputs.front_panel }}
           PROJ_STAMP: ${{ steps.project.outputs.stamp }}
           # The front panel in the name: the two ready-made images of a release differ by it alone.
-          OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
+          OUT_NAME: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
         with:
           release: '14.2'
           sync: sshfs
@@ -277,9 +283,20 @@ jobs:
             printf 'trigger and a boot hook of its own.\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # A statement signed through GitHub and kept by it: this file, by its digest, was built by this
+      # workflow, from this commit, in this repository - what `gh attestation verify` checks. It
+      # says where an image came from, not that it is good; the summary above says what is in it.
+      # A private repository has no attestations on GitHub's free plans, so a private fork skips
+      # this rather than failing the build it would only describe.
+      - name: Attest the image
+        if: github.event.repository.private != true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: '*.img.xz'
+
       - uses: actions/upload-artifact@v7
         with:
-          name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
+          name: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
           path: '*.img.xz'
           retention-days: 7
           if-no-files-found: error

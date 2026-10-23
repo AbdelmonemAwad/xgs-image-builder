@@ -1,13 +1,14 @@
-**Ready-made OPNsense images for Sophos XGS appliances**, with
-[os-xgs-npu @VERSION@](https://github.com/AbdelmonemAwad/os-xgs-npu/releases/tag/@TAG@) installed.
-Download one, write it to a USB stick, and boot the appliance from it.
+**XGS image - based on OPNsense 26.7, with
+[os-xgs-npu @VERSION@](https://github.com/AbdelmonemAwad/os-xgs-npu/releases/tag/@TAG@) preinstalled.**
+Ready-made for Sophos XGS appliances: download one, write it to a USB stick, and boot the appliance
+from it.
 
 | Image | For |
 |---|---|
-| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
-| `xgs-opnsense-26.7-serial-38400.img.xz` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
-| `xgs-opnsense-26.7-serial-115200-front-panel.img.xz` | the rack models, console at 115200 baud |
-| `xgs-opnsense-26.7-serial-115200.img.xz` | the desktop models, console at 115200 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-38400.img.xz` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-115200-front-panel.img.xz` | the rack models, console at 115200 baud |
+| `xgs-image-based-on-opnsense-26.7-serial-115200.img.xz` | the desktop models, console at 115200 baud |
 
 Each image is for every model of its kind: it carries both drivers - ARMADA for the desktop models,
 OCTEON TX for the rack ones - and the kernel sources they are built from, and at its first boot the
@@ -40,10 +41,24 @@ boots perfectly into a console you cannot read.
 > and on an XGS 136 - [which ones, and what was checked](https://github.com/AbdelmonemAwad/xgs-image-builder#readme) -
 > but not these. Boot one before relying on it.
 
-Check the download against `SHA256SUMS`, below and attached:
+### Checking an image
 
-- Linux or macOS: `sha256sum -c SHA256SUMS --ignore-missing`
-- Windows (PowerShell): `Get-FileHash .\<file>.img.xz -Algorithm SHA256`
+- **The download** against `SHA256SUMS`, below and attached - on Linux or macOS
+  `sha256sum -c SHA256SUMS --ignore-missing`, on Windows (PowerShell)
+  `Get-FileHash .\<file>.img.xz -Algorithm SHA256`.
+- **Where it was built.** Each image has a build attestation, signed through GitHub and kept by it,
+  naming this repository, the workflow and the commit it ran from. With the GitHub CLI:
+  `gh attestation verify <file>.img.xz -R AbdelmonemAwad/xgs-image-builder`. It says where the file
+  came from, not that it is good.
+- **What it was built from.** The official OPNsense image, its checksum checked against the list
+  OPNsense publishes before anything was added - [the run's log](@RUN_URL@) shows both - and
+  os-xgs-npu @VERSION@, whose commit the image records in
+  `/usr/local/share/os-xgs-npu/source/.image-build`.
+- **The driver is not in it as a binary.** The appliance compiles it at its first boot, from the
+  source the image carries and against the kernel sources beside it.
+- **Not bit-for-bit reproducible.** The same build run twice gives two different files - the image's
+  file system records when each file was written - so the checksum and the attestation are the
+  checks, not a second build.
 
 Writing the stick, installing to the disk and the first boot are on
 [the build page](https://build.npuforge.org/#install_steps), step by step. This release was built by
