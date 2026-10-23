@@ -38,16 +38,16 @@ four images and publishes them as a [release of this repository](../../releases)
 
 | Image | For |
 |---|---|
-| `serial-38400-front-panel` | a model with a front panel (an LCD and keys), such as the XGS 3300, installed over the serial console |
-| `serial-38400` | a model with no front panel, such as the XGS 136, installed over the serial console |
-| `vga-38400-front-panel` | a model with a front panel, installed with a screen and a keyboard |
-| `vga-38400` | a model with no front panel, installed with a screen and a keyboard |
+| `serial-38400-front-panel` | a model with a front panel (an LCD and keys), such as the XGS 3300, console at 38400 baud |
+| `serial-38400` | a model with no front panel, such as the XGS 136, console at 38400 baud |
+| `serial-115200-front-panel` | a model with a front panel, console at 115200 baud |
+| `serial-115200` | a model with no front panel, console at 115200 baud |
 
-All four are OPNsense 26.7 at 38400 baud, the speed the Sophos firmware uses on the same port; the
-vga ones keep the serial port as the second console. It is the same build a fork runs, called with
-those values, so everything below about what is in an image holds for them too. Any other
-combination is built from the page, in your own account. A release here says plainly whether its
-own files have been booted on an appliance.
+All four are OPNsense 26.7 with the console on the serial port alone - an XGS has no video output -
+at 38400 baud, the speed the Sophos firmware uses on the same port, or at 115200, OPNsense's own. It
+is the same build a fork runs, called with those values, so everything below about what is in an
+image holds for them too. Any other combination is built from the page, in your own account. A
+release here says plainly whether its own files have been booted on an appliance.
 
 ## The two appliances it builds for
 

@@ -5,10 +5,10 @@ name: Ready-made images
 # choice of 2026-10-23, once the OPNsense project had answered that its licence and trademark terms
 # hold nothing back (CONTRIBUTING.md).
 #
-#   serial, the console on the serial port only, and vga, the console on a screen with the serial
-#   port as the second one - both at 38400 baud, the speed of the Sophos firmware's console. Each
-#   with the front panel plugin and LCDproc (the rack models, which have an LCD and keys) and
-#   without them (the desktop models): four images. Built by build.yml, the same build a fork runs.
+#   serial, the console on the serial port only - an XGS has no video output - at 38400 baud, the
+#   speed of the Sophos firmware's console, and at 115200, OPNsense's own. Each with the front
+#   panel plugin and LCDproc (the rack models, which have an LCD and keys) and without them (the
+#   desktop models): four images. Built by build.yml, the same build a fork runs.
 #
 # It looks every six hours for an os-xgs-npu release that has no images here yet, and builds those.
 # By hand, it builds a named release, again if asked. A release here is named images-<that tag>.
@@ -101,19 +101,14 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        image_type: [ 'serial', 'vga' ]
+        console_speed: [ '38400', '115200' ]
         front_panel: [ 'yes', 'no' ]
-        include:
-          - image_type: 'serial'
-            serial_console: 'yes'
-          - image_type: 'vga'
-            serial_console: 'no'
     uses: ./.github/workflows/build.yml
     with:
       opnsense_version: '26.7'
-      image_type: ${{ matrix.image_type }}
-      console_speed: '38400'
-      serial_console: ${{ matrix.serial_console }}
+      image_type: 'serial'
+      console_speed: ${{ matrix.console_speed }}
+      serial_console: 'yes'
       front_panel: ${{ matrix.front_panel }}
       project_ref: ${{ needs.decide.outputs.tag }}
       build_id: ''

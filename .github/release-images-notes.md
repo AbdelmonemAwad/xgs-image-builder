@@ -4,14 +4,15 @@ Download one, write it to a USB stick, and boot the appliance from it.
 
 | Image | For |
 |---|---|
-| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | a model with a front panel (an LCD and keys), such as the XGS 3300, installed over the serial console |
-| `xgs-opnsense-26.7-serial-38400.img.xz` | a model with no front panel, such as the XGS 136, installed over the serial console |
-| `xgs-opnsense-26.7-vga-38400-front-panel.img.xz` | a model with a front panel, installed with a screen and a keyboard |
-| `xgs-opnsense-26.7-vga-38400.img.xz` | a model with no front panel, installed with a screen and a keyboard |
+| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | a model with a front panel (an LCD and keys), such as the XGS 3300, console at 38400 baud |
+| `xgs-opnsense-26.7-serial-38400.img.xz` | a model with no front panel, such as the XGS 136, console at 38400 baud |
+| `xgs-opnsense-26.7-serial-115200-front-panel.img.xz` | a model with a front panel, console at 115200 baud |
+| `xgs-opnsense-26.7-serial-115200.img.xz` | a model with no front panel, console at 115200 baud |
 
-The serial console is at **38400 baud**, the speed the Sophos firmware uses on the same port, so the
-terminal settings that worked before work here. The vga images keep the serial port as the second
-console, at the same speed.
+All four put the console on the serial port alone: an XGS has no video output. **38400 baud** is the
+speed the Sophos firmware uses on the same port, so the terminal settings that worked before work
+there; **115200** is OPNsense's own default. Choose the one your terminal is set to - the wrong one
+boots perfectly into a console you cannot read.
 
 ## What is in them
 
