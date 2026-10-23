@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>XGS Image Builder - a bootable OPNsense image for Sophos XGS</title>
-<meta name="description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
+<meta name="description" content="Download a ready-made OPNsense image for a Sophos XGS appliance, or configure one and build it from this page.">
 <meta name="color-scheme" content="light dark">
 <!-- For search engines and shared links. The page's address is build.npuforge.org, whatever copy
      serves it - a fork's own page on github.io included - and its Arabic is the same page at
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="npuforge">
 <meta property="og:title" content="XGS Image Builder - a bootable OPNsense image for Sophos XGS">
-<meta property="og:description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
+<meta property="og:description" content="Download a ready-made OPNsense image for a Sophos XGS appliance, or configure one and build it from this page.">
 <meta property="og:url" content="https://build.npuforge.org/">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="ar_AR">
@@ -27,13 +27,13 @@
 <meta property="og:image:height" content="608">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="XGS Image Builder - a bootable OPNsense image for Sophos XGS">
-<meta name="twitter:description" content="Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.">
+<meta name="twitter:description" content="Download a ready-made OPNsense image for a Sophos XGS appliance, or configure one and build it from this page.">
 <meta name="twitter:image" content="https://npuforge.org/docs/images/hardware/bench/three-appliances-2026-10-17.jpg">
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@graph": [
   {"@type": "WebPage", "@id": "https://build.npuforge.org/#page", "url": "https://build.npuforge.org/",
    "name": "XGS Image Builder", "inLanguage": ["en", "ar"],
-   "description": "Configure an OPNsense image for a Sophos XGS appliance, and either start the build from this page or open a request for it.",
+   "description": "Download a ready-made OPNsense image for a Sophos XGS appliance, or configure one and build it from this page.",
    "isPartOf": {"@type": "WebSite", "@id": "https://npuforge.org/#website", "name": "npuforge", "url": "https://npuforge.org/"},
    "about": {"@id": "https://build.npuforge.org/#source"},
    "author": {"@type": "Person", "name": "Abdelmonem Awad", "url": "https://github.com/AbdelmonemAwad"}},
@@ -49,9 +49,9 @@
   icon and line of script below is in this file, and what is not (the IBM Plex fonts in fonts/, the
   Arabic in i18n/ar.json, the fork steps' pictures in images/fork/) sits beside it in docs/. That is
   deliberate twice over: the page's whole claim is that it is safe to read, and a page that pulls a
-  stylesheet off a CDN stops looking like itself the day that file is renamed. The one thing read
-  from elsewhere is the newest os-xgs-npu release's number, from npuforge.org, and the page is
-  whole without it.
+  stylesheet off a CDN stops looking like itself the day that file is renamed. What is read from
+  elsewhere - the newest os-xgs-npu release's number and the builds running, from npuforge.org, and
+  the list of ready-made images, from GitHub - the page is whole without.
 
   It reads in English or Arabic. The English is the page as written; an element with data-i18n
   takes its Arabic from i18n/ar.json by that key, and the script's own messages take theirs by
@@ -75,8 +75,8 @@
       held in the tab unless they ask for it to be kept. Nothing in this file has a credential.
 
   The repository is worked out from this page's own URL, so a fork that publishes Pages gets a page
-  that files issues on the fork and builds in the fork's account. See CONTRIBUTING.md - that shape
-  is the licence position, not an accident.
+  that files issues on the fork and builds in the fork's account. The ready-made images are the
+  original repository's releases, whichever copy of the page offers them: a fork publishes none.
 
   Every dropdown here must match a choice input in .github/workflows/build.yml, in the same order.
   tools/check-options.py fails CI if they drift, so change both or neither.
@@ -120,6 +120,7 @@
     --link:       #b04e14;
     --signal:     #0b7480;
     --up:         #1b7a4b;
+    --up-ink:     #ffffff;
 
     --warn:       #9a6510;
     --warn-bg:    #fdf6e6;
@@ -151,7 +152,7 @@
       --rule: #29303a; --rule-soft: #1c2128; --field: #0d0f12;
       --brand: #bf5319; --brand-hi: #d0611f; --brand-ink: #ffffff;
       --brand-tint: #1f1510; --brand-edge: #5a3220;
-      --link: #e8834a; --signal: #39c2c6; --up: #3ccb86;
+      --link: #e8834a; --signal: #39c2c6; --up: #3ccb86; --up-ink: #0b1a12;
       --warn: #e9b04c; --warn-bg: #1f1a0d; --warn-edge: #6b5416;
       --stop: #f07070; --stop-bg: #22100f; --stop-edge: #6e2a28;
       --ring: 0 0 0 3px rgba(57,194,198,.32);
@@ -327,6 +328,24 @@
   .call.info svg { color: var(--link); }
   .call.hide { display: none; }
 
+  /* The ready-made images: a tile an image, the download at its foot; then the way to build one. */
+  .ready .lead { font-size: .92rem; color: var(--ink-2); margin: 0 0 1rem; line-height: 1.65; max-width: 52rem; }
+  .ready-meta { margin: 0 0 .9rem; font-size: .86rem; color: var(--ink-3); }
+  /* Two by two: a row a speed, a column with the front panel and one without. */
+  .ready-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem;
+                grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 40rem) { .ready-list { grid-template-columns: minmax(0, 1fr); } }
+  .ready-list:empty { display: none; }
+  .ready-item { border: 1px solid var(--rule); border-radius: var(--r-md); padding: .85rem .95rem;
+                background: var(--sunken); display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .ready-item h3 { font-size: .95rem; }
+  .ready-item p { font-size: .86rem; color: var(--ink-2); line-height: 1.5; }
+  .ready-item .ready-file, .ready-item .ready-sum { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); overflow-wrap: anywhere; }
+  .ready-item .btn { margin-top: auto; }
+  .ready-list:empty + .note { margin-top: 0; }
+  .or-build { margin: 2.2rem 0 .3rem; font-size: 1.15rem; }
+  .or-build-note { margin: 0 0 1.1rem; font-size: .9rem; color: var(--ink-2); max-width: 46rem; }
+
   /* The installation steps, a plain numbered list in a card. */
   .install { margin-top: 1.5rem; }
   .steps { margin: 0; padding: 0; padding-inline-start: 1.3rem; }
@@ -444,7 +463,7 @@
     font-size: .86rem; color: var(--stop); background: var(--stop-bg);
     border: 1px solid var(--stop-edge); border-radius: var(--r-sm); padding: .55rem .7rem;
   }
-  .btn-go { background: var(--up); color: #fff; width: 100%; }
+  .btn-go { background: var(--up); color: var(--up-ink); width: 100%; }
   .btn-go:hover { filter: brightness(.92); }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   .btn:disabled:active { transform: none; }
@@ -610,30 +629,30 @@
     </div>
 
     <div class="hero-body">
-      <span class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">Nothing to install, and nothing kept</span></span>
-      <h1 data-i18n="hero.title">Build a bootable OPNsense image for a Sophos XGS</h1>
+      <span class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">Ready to download, or built your way</span></span>
+      <h1 data-i18n="hero.title">A bootable OPNsense image for a Sophos XGS</h1>
       <p class="lede" data-i18n="hero.lede">The official OPNsense image, with the
         <a href="https://github.com/AbdelmonemAwad/os-xgs-npu">os-xgs-npu</a> coprocessor driver and
-        plugin already laid into it. Choose how it should boot, and this page opens the build
-        request for you.</p>
+        plugin already laid into it. Download one ready-made, or choose how it should boot and this
+        page opens the build request for you.</p>
       <!-- The newest release, from npuforge.org; hidden until it is read. -->
       <p class="release" id="release" hidden><span data-i18n="hero.release">Builds with os-xgs-npu</span> <b id="release_tag"></b></p>
 
       <ol class="rail">
         <li class="on">
           <span class="pip">1</span>
-          <span class="t" data-i18n="rail.1.t">Configure</span>
-          <span class="d" data-i18n="rail.1.d">You are here. Nothing has started.</span>
+          <span class="t" data-i18n="rail.1.t">Choose</span>
+          <span class="d" data-i18n="rail.1.d">A ready image, or your own build below it. Nothing has started.</span>
         </li>
         <li>
           <span class="pip">2</span>
           <span class="t" data-i18n="rail.2.t">Start it</span>
-          <span class="d" data-i18n="rail.2.d">From here with a token, or by filing an issue.</span>
+          <span class="d" data-i18n="rail.2.d">A ready image downloads at once; a build starts from here with a token, or by filing an issue.</span>
         </li>
         <li>
           <span class="pip">3</span>
           <span class="t" data-i18n="rail.3.t">Download the image</span>
-          <span class="d" data-i18n="rail.3.d">It is kept for seven days, then it expires.</span>
+          <span class="d" data-i18n="rail.3.d">A build is kept for seven days, then it expires.</span>
         </li>
       </ol>
     </div>
@@ -641,6 +660,39 @@
 </header>
 
 <main class="wrap sheet">
+  <!-- The ready-made images, first: release-images.yml builds four for each os-xgs-npu release and
+       publishes them as a release of the original repository. The script fills the list from
+       GitHub; until then, and if GitHub does not answer, the note says where they are. The notice
+       at the end goes wherever an image is offered - the OPNsense project's terms ask for it
+       (CONTRIBUTING.md). -->
+  <section class="card ready" id="ready_card">
+    <div class="card-head">
+      <h2 data-i18n="ready.h">Download a ready image</h2>
+      <span class="aside" data-i18n="ready.aside">built and published with each os-xgs-npu release</span>
+    </div>
+    <div class="card-body">
+      <p class="lead" data-i18n="ready.lead">The official OPNsense image with the driver, the plugins, the Arabic
+      translation and the XGS Silicon theme in it, and its console on the serial port - at
+      <strong>38400 baud</strong>, the speed the Sophos firmware uses on that port, or at
+      <strong>115200</strong>, OPNsense's own. Take the one for your appliance and your terminal; the
+      steps for writing and installing it are at the end of this page.</p>
+      <p class="ready-meta" id="ready_meta" hidden></p>
+      <ul class="ready-list" id="ready_list" aria-live="polite"></ul>
+      <p class="note" id="ready_note">Reading the published images...</p>
+      <p class="note quiet" data-i18n="ready.check">Check the file against <code>SHA256SUMS</code> in the
+      release before writing it, and read the release's notes: they say what is in the image and
+      whether these files have been booted on an appliance.</p>
+      <p class="note quiet" data-i18n="ready.legal"><strong>OPNsense&reg;</strong> is a registered trademark of
+      Deciso B.V.; <strong>Sophos&reg;</strong> and <strong>XGS</strong> are trademarks of Sophos Ltd.
+      These images are independent - not affiliated with, endorsed by or sponsored by either - and
+      hold no Sophos software or firmware. OPNsense's own notices are in them as OPNsense ships them.</p>
+    </div>
+  </section>
+
+  <h2 class="or-build" data-i18n="build.or">Or build your own</h2>
+  <p class="or-build-note" data-i18n="build.or.note">Another console speed, another image type or another
+  release of the driver: built from the choices below, in your own account, in about forty minutes.</p>
+
   <form id="f" novalidate>
     <div class="cols">
 
@@ -687,8 +739,9 @@
           <a id="fork_link" href="https://github.com/AbdelmonemAwad/xgs-image-builder/fork">fork it
           yourself</a> - <a href="#fork_steps">the four steps, with pictures</a>, are below - and use
           your fork's copy of this page.
-          Either way it is your build, your artifact, your storage - the licence position, and
-          CONTRIBUTING.md says why.</span>
+          Either way it is your build, your artifact, your storage<del> - the licence position, and
+          CONTRIBUTING.md says why</del>. A ready image needs none of this: it is at the top of the
+          page.</span>
         </div>
 
         <section class="card">
@@ -958,13 +1011,14 @@
       <p class="lead" data-i18n="install.guide">Never done it before? <a href="https://npuforge.org/docs/guide/step-by-step/">Installing, step by step</a>
       shows every step below with a picture - the USB stick, the console, the installer and the first sign-in.</p>
       <ol class="steps">
-        <li data-i18n="install.1"><strong>Unpack it.</strong> The download is a zip holding one <code>.img.xz</code>.
-        Unzip it, then decompress the <code>.xz</code> - 7-Zip on Windows, <code>xz -d</code>
-        elsewhere - to get the <code>.img</code>.</li>
+        <li data-i18n="install.1"><strong>Unpack it.</strong> A ready image is one <code>.img.xz</code>; a
+        build's download is a zip holding one, so unzip that first. Then decompress the
+        <code>.xz</code> - 7-Zip on Windows, <code>xz -d</code> elsewhere - to get the
+        <code>.img</code>.</li>
         <li data-i18n="install.2"><strong>Write it to a USB stick</strong> of 4 GB or more with a raw image writer -
         Rufus in DD mode, balenaEtcher, or <code>dd</code>. Everything on the stick is replaced.</li>
-        <li data-i18n="install.3"><strong>Connect the serial console</strong> at the speed chosen on this page - 115200
-        or 38400 - 8 data bits, no parity, 1 stop bit, no flow control. An image built before
+        <li data-i18n="install.3"><strong>Connect the serial console</strong> at the image's speed - the one in a
+        ready image's name, or the one chosen on this page for a build - 8 data bits, no parity, 1 stop bit, no flow control. An image built before
         2026-10-16 at 38400 prints its login prompt at 115200; build it again.</li>
         <li data-i18n="install.4"><strong>Boot from the stick:</strong> put it in a USB port, power on, and choose it
         in the boot menu or put it first in the boot order.</li>
@@ -1004,14 +1058,17 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <p data-i18n="foot.1">This page loads its own files and, from npuforge.org, the newest release's number - nothing
-      else - and carries no credential of its own. It never
+      <p data-i18n="foot.1">This page loads its own files and, from npuforge.org, the newest release's number<del> - nothing
+      else -</del> and the builds running, and from GitHub the list of ready-made images - and carries
+      no credential of its own. It never
       asks you for one either: pressing <kbd>Submit new issue</kbd> on GitHub is what authenticates
       you, and the page simply waits for what that produces. A token is offered only for a private
       fork, where reading the run anonymously gets nothing - and that token is yours, sent to
       <code>api.github.com</code> and nowhere else.</p>
-      <p data-i18n="foot.2">The finished image is a workflow <strong>artifact</strong> that expires after seven days,
-      not a release. Builds run in the account that owns the repository.</p>
+      <p data-i18n="foot.2">The image you build is a workflow <strong>artifact</strong> that expires after seven
+      days<del>, not a release</del>; the ready-made ones are a <strong>release</strong> of this
+      repository, published with each os-xgs-npu release. Builds run in the account that owns the
+      repository.</p>
     </div>
     <nav aria-label="More">
       <a href="https://npuforge.org" data-i18n="foot.site">npuforge.org - the project's site</a>
@@ -2134,6 +2191,7 @@
     }
     if (lastTop) { topStep.textContent = T(lastTop); }
     drawBuilds();
+    drawReady();
   }
 
   function loadArabic() {
@@ -2176,6 +2234,102 @@
       id("release").hidden = false;
     })
     .catch(function () { /* the page is whole without it */ });
+
+  /* --- the ready-made images ------------------------------------------------------------------
+     release-images.yml publishes four for each os-xgs-npu release, as a release of the original
+     repository named images-<tag> - a fork publishes none, so every copy of this page offers the
+     original's. Read from GitHub with no credential, once a visit, and drawn again in the other
+     language from what was read. What each file is comes from its name, which build.yml writes:
+     serial - an XGS has no video output - the console speed, and -front-panel when the front panel
+     plugin is in it. */
+  var readyList = id("ready_list"), readyNote = id("ready_note"), readyMeta = id("ready_meta");
+  var readyData = null, readyFailed = false;
+  var READY_KINDS = [
+    ["38400", true, "38400 baud, front panel", "For a model with an LCD and keys on the front, such as the XGS 3300. 38400 is the speed the Sophos firmware uses."],
+    ["38400", false, "38400 baud, no front panel", "For a model with no front panel, such as the XGS 136. 38400 is the speed the Sophos firmware uses."],
+    ["115200", true, "115200 baud, front panel", "For a model with an LCD and keys on the front, such as the XGS 3300. 115200 is OPNsense's own default."],
+    ["115200", false, "115200 baud, no front panel", "For a model with no front panel, such as the XGS 136. 115200 is OPNsense's own default."]
+  ];
+
+  function readyKind(name) {
+    var m = /^xgs-opnsense-([0-9.]+)-serial-([0-9]+)(-front-panel)?\.img\.xz$/.exec(name);
+    if (!m) { return null; }
+    for (var i = 0; i < READY_KINDS.length; i++) {
+      if (READY_KINDS[i][0] === m[2] && READY_KINDS[i][1] === !!m[3]) {
+        return { order: i, kind: READY_KINDS[i], opnsense: m[1] };
+      }
+    }
+    return null;
+  }
+
+  function releasesLink(text) {
+    var a = document.createElement("a");
+    a.href = "https://github.com/" + UPSTREAM + "/releases";
+    a.target = "_blank"; a.rel = "noopener";
+    a.textContent = text;
+    return a;
+  }
+
+  function drawReady() {
+    readyList.textContent = "";
+    readyMeta.textContent = "";
+    if (readyFailed) {
+      readyMeta.hidden = true;
+      readyNote.textContent = T("The list of ready images cannot be read just now. They are on this repository's releases page: ");
+      readyNote.appendChild(releasesLink(T("the releases")));
+      return;
+    }
+    if (!readyData) { readyNote.textContent = T("Reading the published images..."); return; }
+    var rel = readyData, items = [];
+    (rel.assets || []).forEach(function (a) {
+      var k = readyKind(a.name || "");
+      if (k) { k.asset = a; items.push(k); }
+    });
+    if (!items.length) {
+      readyMeta.hidden = true;
+      readyNote.textContent = T("No ready image has been published yet. Build one below, or look on the releases page later: ");
+      readyNote.appendChild(releasesLink(T("the releases")));
+      return;
+    }
+    items.sort(function (x, y) { return x.order - y.order; });
+    items.forEach(function (k) {
+      var a = k.asset;
+      var li = readyList.appendChild(document.createElement("li"));
+      li.className = "ready-item";
+      li.appendChild(document.createElement("h3")).textContent = T(k.kind[2]);
+      li.appendChild(document.createElement("p")).textContent = T(k.kind[3]);
+      var file = li.appendChild(document.createElement("p"));
+      file.className = "ready-file";
+      file.setAttribute("dir", "ltr");
+      file.textContent = a.name + " · " + Math.round((a.size || 0) / 1048576) + " MB";
+      if (/^sha256:[0-9a-f]{64}$/.test(a.digest || "")) {
+        var sum = li.appendChild(document.createElement("p"));
+        sum.className = "ready-sum";
+        sum.setAttribute("dir", "ltr");
+        sum.textContent = "sha256 " + a.digest.slice(7);
+      }
+      var dl = li.appendChild(document.createElement("a"));
+      dl.className = "btn btn-go";
+      dl.href = a.browser_download_url;
+      dl.textContent = T("Download");
+    });
+    var tag = (rel.tag_name || "").replace(/^images-/, "");
+    readyMeta.textContent = T("With os-xgs-npu ") + tag + " · OPNsense " + items[0].opnsense + " · "
+      + (rel.published_at || "").slice(0, 10) + " · ";
+    var notes = readyMeta.appendChild(document.createElement("a"));
+    notes.href = rel.html_url;
+    notes.target = "_blank"; notes.rel = "noopener";
+    notes.textContent = T("the release and its notes");
+    readyMeta.hidden = false;
+    readyNote.textContent = "";
+  }
+
+  /* The newest release named images-v..., published - an anonymous read never sees a draft. */
+  api("/repos/" + UPSTREAM + "/releases?per_page=10", {}).then(function (res) {
+    if (res.status !== 200 || !Array.isArray(res.data)) { throw new Error("no"); }
+    readyData = res.data.filter(function (r) { return !r.draft && /^images-v/.test(r.tag_name || ""); })[0] || {};
+    drawReady();
+  }).catch(function () { readyFailed = true; drawReady(); });
 })();
 </script>
 </body>
