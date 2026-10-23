@@ -38,10 +38,14 @@ four images and publishes them as a [release of this repository](../../releases)
 
 | Image | For |
 |---|---|
-| `serial-38400-front-panel` | a model with a front panel (an LCD and keys), such as the XGS 3300, console at 38400 baud |
-| `serial-38400` | a model with no front panel, such as the XGS 136, console at 38400 baud |
-| `serial-115200-front-panel` | a model with a front panel, console at 115200 baud |
-| `serial-115200` | a model with no front panel, console at 115200 baud |
+| `serial-38400-front-panel` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
+| `serial-38400` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
+| `serial-115200-front-panel` | the rack models, console at 115200 baud |
+| `serial-115200` | the desktop models, console at 115200 baud |
+
+Each image is for every model of its kind: it carries both drivers and the kernel sources they are
+built from, and the appliance installs the one its own board names at its first boot. The XGS 136
+and the XGS 3300 are the two run by the project; the others are untested.
 
 All four are OPNsense 26.7 with the console on the serial port alone - an XGS has no video output -
 at 38400 baud, the speed the Sophos firmware uses on the same port, or at 115200, OPNsense's own. It
