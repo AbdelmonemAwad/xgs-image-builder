@@ -4,10 +4,16 @@ Download one, write it to a USB stick, and boot the appliance from it.
 
 | Image | For |
 |---|---|
-| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | a model with a front panel (an LCD and keys), such as the XGS 3300, console at 38400 baud |
-| `xgs-opnsense-26.7-serial-38400.img.xz` | a model with no front panel, such as the XGS 136, console at 38400 baud |
-| `xgs-opnsense-26.7-serial-115200-front-panel.img.xz` | a model with a front panel, console at 115200 baud |
-| `xgs-opnsense-26.7-serial-115200.img.xz` | a model with no front panel, console at 115200 baud |
+| `xgs-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
+| `xgs-opnsense-26.7-serial-38400.img.xz` | the desktop models, no front panel - XGS 87, 107, 116, 126, 136, 138 and their w twins - console at 38400 baud |
+| `xgs-opnsense-26.7-serial-115200-front-panel.img.xz` | the rack models, console at 115200 baud |
+| `xgs-opnsense-26.7-serial-115200.img.xz` | the desktop models, console at 115200 baud |
+
+Each image is for every model of its kind: it carries both drivers - ARMADA for the desktop models,
+OCTEON TX for the rack ones - and the kernel sources they are built from, and at its first boot the
+appliance installs the one its own board names. Only the front panel plugin sets the images apart.
+The XGS 136 and the XGS 3300 are the two run by the project; the other models are added from the
+vendor's board files and untested.
 
 All four put the console on the serial port alone: an XGS has no video output. **38400 baud** is the
 speed the Sophos firmware uses on the same port, so the terminal settings that worked before work

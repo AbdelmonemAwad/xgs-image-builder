@@ -679,6 +679,12 @@
       <p class="ready-meta" id="ready_meta" hidden></p>
       <ul class="ready-list" id="ready_list" aria-live="polite"></ul>
       <p class="note" id="ready_note">Reading the published images...</p>
+      <p class="note" data-i18n="ready.models">Each image is for every model of its kind. It carries both drivers -
+      ARMADA for the desktop models, OCTEON TX for the rack ones - and the kernel sources they are
+      built from, and at its first boot the appliance installs the one its own board names; only the
+      front panel plugin sets the images apart. Run here: the XGS 136 and the XGS 3300. The other
+      models are added from the vendor's board files and untested - a report of how one runs is
+      welcome.</p>
       <p class="note quiet" data-i18n="ready.check">Check the file against <code>SHA256SUMS</code> in the
       release before writing it, and read the release's notes: they say what is in the image and
       whether these files have been booted on an appliance.</p>
@@ -2245,10 +2251,10 @@
   var readyList = id("ready_list"), readyNote = id("ready_note"), readyMeta = id("ready_meta");
   var readyData = null, readyFailed = false;
   var READY_KINDS = [
-    ["38400", true, "38400 baud, front panel", "For a model with an LCD and keys on the front, such as the XGS 3300. 38400 is the speed the Sophos firmware uses."],
-    ["38400", false, "38400 baud, no front panel", "For a model with no front panel, such as the XGS 136. 38400 is the speed the Sophos firmware uses."],
-    ["115200", true, "115200 baud, front panel", "For a model with an LCD and keys on the front, such as the XGS 3300. 115200 is OPNsense's own default."],
-    ["115200", false, "115200 baud, no front panel", "For a model with no front panel, such as the XGS 136. 115200 is OPNsense's own default."]
+    ["38400", true, "38400 baud, front panel", "For the rack models, an LCD and keys on the front: XGS 2100, 2300, 3100 and 3300. 38400 is the speed the Sophos firmware uses."],
+    ["38400", false, "38400 baud, no front panel", "For the desktop models, no front panel: XGS 87, 107, 116, 126, 136 and 138, and their w twins. 38400 is the speed the Sophos firmware uses."],
+    ["115200", true, "115200 baud, front panel", "For the rack models, an LCD and keys on the front: XGS 2100, 2300, 3100 and 3300. 115200 is OPNsense's own default."],
+    ["115200", false, "115200 baud, no front panel", "For the desktop models, no front panel: XGS 87, 107, 116, 126, 136 and 138, and their w twins. 115200 is OPNsense's own default."]
   ];
 
   function readyKind(name) {
