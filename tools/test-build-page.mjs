@@ -56,7 +56,24 @@ const check = (name, cond, got) => { console.log((cond ? 'ok   ' : 'FAIL ') + na
 /* npuforge.org answers what the page reads from it - the release's number and the builds panel's
    list - from here too, so a run never leaves the machine: by default no build at all. */
 const NO_BUILDS = { status: 200, body: { repo: 'someone/my-fork', runs: [], weights: null, at: '2026-10-20T01:00:00Z' } };
-async function page(mock, builds) {
+/* The ready-made images: the original repository's releases, newest first - a draft (which an
+   anonymous read never gets, but a mock can send), the images of the newest os-xgs-npu release with
+   its four files out of order and its checksum list, and an older one. Answered apart from the
+   other GitHub calls, so the cases about those still count only those. */
+const IMG = 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases/download/images-v0.1.0-alpha.5.6/';
+const asset = (name, mb, digest) => ({ name, size: mb * 1048576, browser_download_url: IMG + name,
+  digest: digest ? 'sha256:' + digest.repeat(64 / digest.length) : null });
+const READY = { status: 200, body: [
+  { tag_name: 'images-v0.1.0-alpha.5.7', draft: true, assets: [asset('xgs-opnsense-26.7-serial-38400.img.xz', 1, 'f')] },
+  { tag_name: 'images-v0.1.0-alpha.5.6', draft: false, published_at: '2026-10-24T02:10:00Z',
+    html_url: 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases/tag/images-v0.1.0-alpha.5.6',
+    assets: [asset('xgs-opnsense-26.7-serial-115200.img.xz', 640, 'd'), asset('SHA256SUMS', 0),
+             asset('xgs-opnsense-26.7-serial-38400.img.xz', 612, 'b'),
+             asset('xgs-opnsense-26.7-serial-115200-front-panel.img.xz', 641, 'c'),
+             asset('xgs-opnsense-26.7-serial-38400-front-panel.img.xz', 613, 'a'),
+             asset('xgs-opnsense-26.7-vga-38400.img.xz', 650, 'e')] },
+  { tag_name: 'images-v0.1.0-alpha.5.5', draft: false, assets: [] }] };
+async function page(mock, builds, ready) {
   const c = await b.newContext({ viewport: { width: 1280, height: 1100 } });
   await c.route('https://github.com/**', r => r.fulfill({ status: 200,
     contentType: 'text/html', body: '<title>new issue</title>' }));
@@ -80,8 +97,14 @@ async function page(mock, builds) {
     await route.fulfill({ status: res.status, contentType: 'application/json',
                           body: res.body === undefined ? '{}' : JSON.stringify(res.body) });
   });
+  const rel = [];
+  await c.route(u => u.href.startsWith('https://api.github.com/repos/AbdelmonemAwad/xgs-image-builder/releases'), async route => {
+    rel.push({ url: route.request().url(), auth: route.request().headers()['authorization'] });
+    const res = ready || READY;
+    await route.fulfill({ status: res.status, contentType: 'application/json', body: JSON.stringify(res.body) });
+  });
   await p.goto(URL, { waitUntil: 'load' });
-  return { p, c, seen, asked };
+  return { p, c, seen, asked, rel };
 }
 /* The token lives behind a disclosure now - the open route is the one offered first - so every
    token case has to open it the way a reader would. */
@@ -562,7 +585,7 @@ for (const [conclusion, want] of [
   await p.click('#lang_toggle');
   await p.waitForFunction(() => document.documentElement.dir === 'ltr', null, { timeout: 10000 });
   const back = await p.evaluate(() => document.querySelector('h1').textContent);
-  check('and English comes back as it was', back === 'Build a bootable OPNsense image for a Sophos XGS', back);
+  check('and English comes back as it was', back === 'A bootable OPNsense image for a Sophos XGS', back);
   await c.close();
 }
 
@@ -616,6 +639,66 @@ for (const [conclusion, want] of [
   await p.waitForFunction(() => document.querySelectorAll('#builds_list .build').length === 1, null, { timeout: 10000 });
   check('without npuforge.org it reads GitHub once, the list alone',
         seen.length === 1 && seen[0].url.includes('/actions/workflows/build.yml/runs'), seen.map(x => x.url).join(' '));
+  await c.close();
+}
+
+// ------------------------------------------------------------- 8. the ready-made images
+// The newest published images-v release of the original repository, whatever copy of the page this
+// is: its four files in a fixed order, each with its size, its checksum and its download, and the
+// release named above them - read once, with no credential, and drawn again in Arabic.
+{
+  const { p, c, rel } = await page(() => ({ status: 404, body: {} }));
+  await p.waitForFunction(() => document.querySelectorAll('#ready_list .ready-item').length === 4, null, { timeout: 10000 });
+  const v = await p.evaluate(() => {
+    const rows = [...document.querySelectorAll('#ready_list .ready-item')];
+    return { titles: rows.map(r => r.querySelector('h3').textContent),
+             files: rows.map(r => r.querySelector('.ready-file').textContent),
+             sums: rows.map(r => (r.querySelector('.ready-sum') || {}).textContent || ''),
+             links: rows.map(r => r.querySelector('a.btn').href),
+             meta: document.getElementById('ready_meta').textContent,
+             metaShown: !document.getElementById('ready_meta').hidden,
+             notes: (document.querySelector('#ready_meta a') || {}).href,
+             note: document.getElementById('ready_note').textContent };
+  });
+  check('four images, Sophos speed first, a file of no known kind left out', v.titles.join('|') ===
+    '38400 baud, front panel|38400 baud, no front panel|115200 baud, front panel|115200 baud, no front panel', v.titles.join('|'));
+  check('each says which file and how big', v.files[0] === 'xgs-opnsense-26.7-serial-38400-front-panel.img.xz · 613 MB'
+    && v.files[3] === 'xgs-opnsense-26.7-serial-115200.img.xz · 640 MB', v.files.join(' | '));
+  check('each carries its checksum', v.sums[1] === 'sha256 ' + 'b'.repeat(64), v.sums[1]);
+  check('each downloads its own file', v.links[2] === IMG + 'xgs-opnsense-26.7-serial-115200-front-panel.img.xz', v.links[2]);
+  check('the published release, not the draft', v.meta.includes('v0.1.0-alpha.5.6') && !v.meta.includes('5.7'), v.meta);
+  check('it names OPNsense and the day', v.meta.includes('OPNsense 26.7') && v.meta.includes('2026-10-24') && v.metaShown, v.meta);
+  check('and links to the release notes', v.notes === READY.body[1].html_url, v.notes);
+  check('the loading note is gone', v.note === '', v.note);
+  check('the list is read once, with no credential', rel.length === 1 && !rel[0].auth, JSON.stringify(rel));
+  check('from the original repository on a fork\'s page', rel[0].url.includes('/repos/AbdelmonemAwad/xgs-image-builder/releases'), rel[0].url);
+  await p.click('#lang_toggle');
+  await p.waitForFunction(() => document.documentElement.dir === 'rtl', null, { timeout: 10000 });
+  const ar = await p.evaluate(() => [...document.querySelectorAll('#ready_list h3')].map(e => e.textContent).join('|')
+    + ' | ' + document.querySelector('#ready_list a.btn').textContent + ' | ' + document.getElementById('ready_meta').textContent);
+  check('the images speak Arabic with the page', /[؀-ۿ]/.test(ar) && !ar.includes('front panel') && ar.includes('v0.1.0-alpha.5.6'), ar);
+  check('and changing the language reads nothing again', rel.length === 1, rel.length + ' reads');
+  await c.close();
+}
+{
+  const { p, c } = await page(() => ({ status: 404, body: {} }), undefined,
+    { status: 200, body: [{ tag_name: 'v1.0.0', draft: false, assets: [] }] });
+  await p.waitForFunction(() => /yet/.test(document.getElementById("ready_note").textContent), null, { timeout: 10000 });
+  const v = await p.evaluate(() => ({ items: document.querySelectorAll('#ready_list .ready-item').length,
+    note: document.getElementById('ready_note').textContent, link: (document.querySelector('#ready_note a') || {}).href,
+    meta: document.getElementById('ready_meta').hidden }));
+  check('no images release yet: it says so and points at the build', v.items === 0 && v.note.includes('No ready image has been published yet') && v.meta, v.note);
+  check('and at the releases page', v.link === 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases', v.link);
+  await c.close();
+}
+{
+  const { p, c } = await page(() => ({ status: 404, body: {} }), undefined,
+    { status: 403, body: { message: 'API rate limit exceeded' } });
+  await p.waitForFunction(() => /cannot be read/.test(document.getElementById('ready_note').textContent), null, { timeout: 10000 });
+  const v = await p.evaluate(() => ({ items: document.querySelectorAll('#ready_list .ready-item').length,
+    link: (document.querySelector('#ready_note a') || {}).href }));
+  check('GitHub refusing: no tiles, and the releases page instead', v.items === 0
+    && v.link === 'https://github.com/AbdelmonemAwad/xgs-image-builder/releases', JSON.stringify(v));
   await c.close();
 }
 
