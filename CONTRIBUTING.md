@@ -18,12 +18,29 @@ A **recipe**, not an image. It builds a bootable OPNsense image for Sophos XGS a
 stores no part of the upstream image.
 
 The build runs in GitHub Actions from a `workflow_dispatch` with dropdown inputs. The result is a
-workflow artifact with a short retention, not a release asset and not a committed file.
+workflow artifact with a short retention, not a committed file. ~~not a release asset~~ The same
+build, called by `release-images.yml`, also makes the ready-made images published as a release for
+each os-xgs-npu release - see below.
 
-**That shape is deliberate and it is also the licence position.** Running a workflow needs write
+~~**That shape is deliberate and it is also the licence position.** Running a workflow needs write
 access, so anyone else has to fork this repository and run it in their own account: their build,
 their artifact, their storage. This repository distributes only its own code, and the user takes
-the OPNsense image from OPNsense's own mirror under OPNsense's own terms.
+the OPNsense image from OPNsense's own mirror under OPNsense's own terms.~~
+
+**Ready-made images are published here, and the licence position is OPNsense's answer.** On
+2026-10-23 the OPNsense project answered the question directly: its licence and trademark terms
+([its legal guidelines](https://opnsense.org/legal-guidelines/)) hold nothing back from publishing
+images built on its own. So `release-images.yml` builds the most needed combinations for each
+os-xgs-npu release and publishes them, and a fork still builds any other combination in its own
+account. What that answer keeps in force, every release and every page that offers a download keeps:
+
+- **A descriptive name only** - "based on OPNsense 26.7". A name or logo derived from OPNsense's
+  needs the project's permission first, and there is none.
+- **OPNsense's notices stay as they are**, in the image and beside it: the BSD licence asks for
+  that, and nothing here removes or changes them.
+- **Independent, and said so** - not affiliated with, endorsed by or sponsored by Deciso B.V. or the
+  OPNsense project, on every page that offers an image.
+- **No Sophos software or firmware** in any image.
 
 ## What it is not
 

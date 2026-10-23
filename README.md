@@ -28,7 +28,26 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
 the Arabic translation, the right-to-left layout, the XGS Silicon theme and four appliance plugins
 beside it.
 
-<p align="center"><a href="https://build.npuforge.org/"><b>Open the build page</b></a> - pick the OPNsense release, the image type and the console speed, and start the build. Nothing to install.</p>
+<p align="center"><a href="https://github.com/AbdelmonemAwad/xgs-image-builder/releases/latest"><b>Download a ready-made image</b></a> - or <a href="https://build.npuforge.org/"><b>open the build page</b></a> to pick the OPNsense release, the image type and the console speed, and build your own. Nothing to install.</p>
+
+## Ready-made images
+
+For each os-xgs-npu release, [`release-images.yml`](.github/workflows/release-images.yml) builds
+four images and publishes them as a [release of this repository](../../releases), named
+`images-` and that release's tag, with a `SHA256SUMS` beside them:
+
+| Image | For |
+|---|---|
+| `serial-38400-front-panel` | a model with a front panel (an LCD and keys), such as the XGS 3300, console at 38400 baud |
+| `serial-38400` | a model with no front panel, such as the XGS 136, console at 38400 baud |
+| `serial-115200-front-panel` | a model with a front panel, console at 115200 baud |
+| `serial-115200` | a model with no front panel, console at 115200 baud |
+
+All four are OPNsense 26.7 with the console on the serial port alone - an XGS has no video output -
+at 38400 baud, the speed the Sophos firmware uses on the same port, or at 115200, OPNsense's own. It
+is the same build a fork runs, called with those values, so everything below about what is in an
+image holds for them too. Any other combination is built from the page, in your own account. A
+release here says plainly whether its own files have been booted on an appliance.
 
 ## The two appliances it builds for
 
@@ -57,7 +76,8 @@ An image built here installs that project's newest release, so it carries what t
   front panel's where there is a panel - each keeping itself across OPNsense updates.
 - **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
   queued, building step by step, image ready - and its clock stops the moment the image exists.
-- **Nothing kept.** The image is an artifact of your own run, and it expires in seven days.
+- **Nothing kept** of what you build. Your image is an artifact of your own run, and it expires in
+  seven days. The ready-made ones above are the only images kept here.
 
 That link is this repository's own page, and a build only runs for the account that owns the
 repository it runs in. So it is the one to read; it is not the one to build from. For an image of
@@ -135,9 +155,16 @@ The artifact expires on its own. Nothing is kept.
 This repository holds **no part of any OPNsense image**. The workflow fetches the official image
 from OPNsense's own mirror at build time, verifies it, and adds this project's files to it.
 
-That is not only to keep the repository small. Because the build runs in *your* fork, under *your*
+~~That is not only to keep the repository small. Because the build runs in *your* fork, under *your*
 account, the image is something you built for yourself from an upstream image you obtained from
-upstream. This repository distributes its own code and nothing else.
+upstream. This repository distributes its own code and nothing else.~~
+
+That keeps the repository small, and it keeps every image traceable to the official one it was
+made from. The ready-made images are published here too, since 2026-10-23, when the OPNsense
+project answered that its licence and trademark terms
+([its legal guidelines](https://opnsense.org/legal-guidelines/)) hold nothing back from it. They
+keep OPNsense's notices as they are, carry a descriptive name only - "based on OPNsense 26.7" - and
+hold no Sophos software or firmware ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 OPNsense is a trademark of Deciso B.V. Nothing here is endorsed by or affiliated with them, and the
 name is used only to say which system the image is built from.

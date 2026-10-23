@@ -1,0 +1,172 @@
+name: Ready-made images
+
+# The images most XGS owners need, built here for each os-xgs-npu release and published as a
+# release of this repository, so an owner can download one instead of building it - the owner's
+# choice of 2026-10-23, once the OPNsense project had answered that its licence and trademark terms
+# hold nothing back (CONTRIBUTING.md).
+#
+#   serial, the console on the serial port only - an XGS has no video output - at 38400 baud, the
+#   speed of the Sophos firmware's console, and at 115200, OPNsense's own. Each with the front
+#   panel plugin and LCDproc (the rack models, which have an LCD and keys) and without them (the
+#   desktop models): four images. Built by build.yml, the same build a fork runs.
+#
+# It looks every six hours for an os-xgs-npu release that has no images here yet, and builds those.
+# By hand, it builds a named release, again if asked. A release here is named images-<that tag>.
+#
+# Pushed to a branch named images-test/..., it builds the same four images and publishes them as a
+# DRAFT named images-test-<that tag>, which only the owner sees: the way to try a change to this
+# file or to the build before it is merged, since a workflow that is not yet on main cannot be run
+# by hand. The draft has its own name so that the published release can never be mistaken for it.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      project_tag:
+        description: 'os-xgs-npu release to build images for, as v0.1.0-alpha.5.6 - empty for the newest'
+        type: string
+        default: ''
+      again:
+        description: 'Build and publish again even if this release already has its images'
+        type: choice
+        default: 'no'
+        options: [ 'no', 'yes' ]
+  push:
+    branches: [ 'images-test/**' ]
+
+permissions:
+  contents: read
+
+# One at a time: two runs for the same release would publish it twice.
+concurrency:
+  group: ready-made-images
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    name: Which release, and whether to build
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.which.outputs.tag }}
+      name: ${{ steps.which.outputs.name }}
+      build: ${{ steps.which.outputs.build }}
+      draft: ${{ steps.which.outputs.draft }}
+    steps:
+      - name: Find the release and look for its images here
+        id: which
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WANT: ${{ inputs.project_tag }}
+          AGAIN: ${{ inputs.again }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eu
+          if [ -n "${WANT:-}" ]; then
+            tag=$WANT
+          else
+            tag=$(gh api repos/AbdelmonemAwad/os-xgs-npu/releases/latest --jq .tag_name)
+          fi
+          case "$tag" in
+            v[0-9]*) ;;
+            *) echo "not a release tag: $tag" >&2; exit 1 ;;
+          esac
+          if [ "$EVENT" = push ]; then
+            draft=yes
+            name=images-test-$tag
+          else
+            draft=no
+            name=images-$tag
+          fi
+          # releases/tags/ answers only for a published release, never a draft.
+          build=yes
+          if [ "$draft" = no ] && [ "${AGAIN:-no}" != yes ] &&
+              gh api "repos/$REPO/releases/tags/$name" > /dev/null 2>&1; then
+            build=no
+            echo "$name is already published; nothing to build"
+          fi
+          {
+            echo "tag=$tag"
+            echo "name=$name"
+            echo "build=$build"
+            echo "draft=$draft"
+          } >> "$GITHUB_OUTPUT"
+          echo "os-xgs-npu $tag: $name, build $build, draft $draft"
+
+  build:
+    name: Build
+    needs: decide
+    if: needs.decide.outputs.build == 'yes'
+    strategy:
+      fail-fast: true
+      matrix:
+        console_speed: [ '38400', '115200' ]
+        front_panel: [ 'yes', 'no' ]
+    uses: ./.github/workflows/build.yml
+    with:
+      opnsense_version: '26.7'
+      image_type: 'serial'
+      console_speed: ${{ matrix.console_speed }}
+      serial_console: 'yes'
+      front_panel: ${{ matrix.front_panel }}
+      project_ref: ${{ needs.decide.outputs.tag }}
+      build_id: ''
+
+  publish:
+    name: Publish the release
+    needs: [ decide, build ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums, notes and the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.decide.outputs.tag }}
+          NAME: ${{ needs.decide.outputs.name }}
+          DRAFT: ${{ needs.decide.outputs.draft }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -eu
+          cd dist
+          ls -l
+          n=$(ls *.img.xz | wc -l)
+          if [ "$n" -ne 4 ]; then
+            echo "expected four images, found $n" >&2
+            exit 1
+          fi
+          sha256sum *.img.xz > SHA256SUMS
+          cat SHA256SUMS
+          cd ..
+          version=${TAG#v}
+          sed -e "s|@VERSION@|${version}|g" -e "s|@TAG@|${TAG}|g" -e "s|@RUN_URL@|${RUN_URL}|g" \
+            .github/release-images-notes.md > /tmp/notes.md
+          {
+            printf '\n## Checksums\n\n```\n'
+            cat dist/SHA256SUMS
+            printf '```\n'
+          } >> /tmp/notes.md
+          set -- --title "XGS images with os-xgs-npu ${version} - based on OPNsense 26.7" \
+            --notes-file /tmp/notes.md -R "$REPO"
+          if [ "$DRAFT" = yes ]; then
+            set -- "$@" --draft
+          else
+            set -- "$@" --latest
+          fi
+          # Built again, by hand or by a second push to a test branch: the same release, new files.
+          if gh release view "$NAME" -R "$REPO" > /dev/null 2>&1; then
+            gh release upload "$NAME" dist/*.img.xz dist/SHA256SUMS --clobber -R "$REPO"
+            gh release edit "$NAME" --notes-file /tmp/notes.md -R "$REPO"
+          else
+            gh release create "$NAME" dist/*.img.xz dist/SHA256SUMS --target "$GITHUB_SHA" "$@"
+          fi
+          echo "published $NAME (draft: $DRAFT)"

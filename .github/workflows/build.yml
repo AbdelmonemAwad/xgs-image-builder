@@ -2,11 +2,11 @@ name: Build image
 
 # Build a bootable OPNsense image for a Sophos XGS appliance, from the dropdowns below.
 #
-# THE RESULT IS AN ARTIFACT, NOT A RELEASE, and it expires. Nothing in this repository holds any
-# part of an OPNsense image: the build fetches the official one from OPNsense's own mirror, verifies
-# it, and adds this project's files to it. See CONTRIBUTING.md - that shape is also the licence
-# position, and running a workflow needs write access, so anyone else forks this and runs it in
-# their own account.
+# THE RESULT IS AN ARTIFACT, and it expires. Nothing in this repository holds any part of an
+# OPNsense image: the build fetches the official one from OPNsense's own mirror, verifies it, and
+# adds this project's files to it. Running a workflow needs write access, so anyone else forks this
+# and runs it in their own account. The ready-made images are this same build, called by
+# release-images.yml, which publishes what it makes as a release - see CONTRIBUTING.md.
 #
 # NOTHING BUILT HERE HAS BEEN BOOTED ON AN APPLIANCE. A GitHub runner has no Sophos hardware
 # attached to it. Burn an image and boot it before relying on it.
@@ -58,6 +58,18 @@ on:
         description: 'Left empty here. The build page fills it in so it can find this run again.'
         type: string
         default: ''
+  # The same build, called by release-images.yml for the ready-made images published with each
+  # os-xgs-npu release. A called workflow takes no choice inputs, so these are strings, and
+  # release-images.yml passes only values the lists above offer.
+  workflow_call:
+    inputs:
+      opnsense_version: { type: string, default: '26.7' }
+      image_type: { type: string, default: 'serial' }
+      console_speed: { type: string, default: '115200' }
+      serial_console: { type: string, default: 'yes' }
+      front_panel: { type: string, default: 'no' }
+      project_ref: { type: string, default: 'latest' }
+      build_id: { type: string, default: '' }
 
 # A workflow_dispatch answers 204 and hands back no run id, so a caller that wants to watch its own
 # build has nothing to match on. The page generates a build_id, sends it, and then looks for the run
@@ -167,7 +179,8 @@ jobs:
           SERIAL_CONSOLE: ${{ inputs.serial_console }}
           FRONT_PANEL: ${{ inputs.front_panel }}
           PROJ_STAMP: ${{ steps.project.outputs.stamp }}
-          OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}.img
+          # The front panel in the name: the two ready-made images of a release differ by it alone.
+          OUT_NAME: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
         with:
           release: '14.2'
           sync: sshfs
@@ -266,7 +279,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}
+          name: xgs-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
           path: '*.img.xz'
           retention-days: 7
           if-no-files-found: error
