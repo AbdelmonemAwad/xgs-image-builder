@@ -189,6 +189,17 @@ jobs:
             done
             gh release edit "$NAME" --title "$title" --notes-file /tmp/notes.md -R "$REPO"
           else
-            gh release create "$NAME" dist/*.img.xz dist/SHA256SUMS --target "$GITHUB_SHA" "$@"
+            # The release's tag is made at the commit these images were built from - unless main
+            # has moved since and changed a workflow file: this run's token may make a tag only
+            # where the workflows are main's own, and is refused (HTTP 403) anywhere else, at an
+            # older commit too (issue 60, tried at four commits). Then the tag goes to main's
+            # head, and the notes say which commit the images were built from.
+            if ! gh release create "$NAME" dist/*.img.xz dist/SHA256SUMS --target "$GITHUB_SHA" "$@"; then
+              head=$(gh api "repos/$REPO/commits/main" --jq .sha)
+              echo "the tag at $GITHUB_SHA was refused; making it at main's head, $head"
+              printf '\nBuilt from this repository at %s; the release is tagged at %s, main when it was published.\n' \
+                "$GITHUB_SHA" "$head" >> /tmp/notes.md
+              gh release create "$NAME" dist/*.img.xz dist/SHA256SUMS --target "$head" "$@"
+            fi
           fi
           echo "published $NAME (draft: $DRAFT)"
