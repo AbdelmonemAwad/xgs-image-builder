@@ -10,7 +10,10 @@ name: Ready-made images
 #   panel plugin and LCDproc (the rack models, which have an LCD and keys) and without them (the
 #   desktop models): four images. Built by build.yml, the same build a fork runs.
 #
-# It looks every six hours for an os-xgs-npu release that has no images here yet, and builds those.
+# os-xgs-npu's release workflow starts it as it publishes a main release - a gathered one, a stage,
+# or leaving alpha - with the release's tag; a small release (its number has a fourth part) gets no
+# images of its own, the owner's word of 2026-10-24. Every six hours it also looks for the newest
+# main release that has no images here yet, and builds those, for a release whose start did not come.
 # By hand, it builds a named release, again if asked. A release here is named images-<that tag>.
 #
 # Pushed to a branch named images-test/..., it builds the same four images and publishes them as a
@@ -66,7 +69,11 @@ jobs:
           if [ -n "${WANT:-}" ]; then
             tag=$WANT
           else
-            tag=$(gh api repos/AbdelmonemAwad/os-xgs-npu/releases/latest --jq .tag_name)
+            # The newest MAIN release: a small one - its number has a fourth part, v0.1.0-alpha.5.6 -
+            # gets no images of its own (the owner's word, 2026-10-24); by hand, any release is built.
+            tag=$(gh api 'repos/AbdelmonemAwad/os-xgs-npu/releases?per_page=50' --jq \
+              '[.[] | select(.draft | not) | .tag_name | select(test("^v[0-9]+[.][0-9]+[.][0-9]+(-[a-z]+[.][0-9]+)?$"))] | first // ""')
+            [ -n "$tag" ] || { echo "no main release of os-xgs-npu found" >&2; exit 1; }
           fi
           case "$tag" in
             v[0-9]*) ;;

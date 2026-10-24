@@ -32,7 +32,7 @@ beside it.
 
 ## Ready-made images
 
-For each os-xgs-npu release, [`release-images.yml`](.github/workflows/release-images.yml) builds
+~~For each os-xgs-npu release~~ For each main os-xgs-npu release - started by its release as it is published, and found by a look every six hours besides; a small release, whose number has a fourth part, has no images of its own (2026-10-24) - [`release-images.yml`](.github/workflows/release-images.yml) builds
 four images and publishes them as a [release of this repository](../../releases), named
 `images-` and that release's tag, with a `SHA256SUMS` beside them:
 
