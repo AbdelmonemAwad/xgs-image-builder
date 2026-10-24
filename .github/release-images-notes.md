@@ -3,6 +3,15 @@
 Ready-made for Sophos XGS appliances: download one, write it to a USB stick, and boot the appliance
 from it.
 
+> [!CAUTION]
+> **Update OPNsense right after installing - a test appliance too.** The image starts from OPNsense
+> 26.7's own image and carries its PHP, older than the fix for PHP2Shell (CVE-2026-109618,
+> CVE-2026-109619), which [php.net](https://www.php.net/archive/2026.php) says can allow remote code
+> execution without a login; OPNsense's web interface runs on PHP. At the first boot: System: Firmware:
+> Status - *Check for updates*, then *Update*. Afterwards `php -v` reads **8.5.12** or later, while the
+> version still reads 26.7.7 ([OPNsense's announcement](https://forum.opnsense.org/index.php?topic=53191.0),
+> [what to do](https://npuforge.org/news/update-opnsense-php2shell/)).
+
 | Image | For |
 |---|---|
 | `xgs-image-based-on-opnsense-26.7-serial-38400-front-panel.img.xz` | the rack models, an LCD and keys on the front - XGS 2100, 2300, 3100, 3300 - console at 38400 baud |
