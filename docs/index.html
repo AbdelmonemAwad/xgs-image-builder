@@ -676,6 +676,19 @@
       <strong>38400 baud</strong>, the speed the Sophos firmware uses on that port, or at
       <strong>115200</strong>, OPNsense's own. Take the one for your appliance and your terminal; the
       steps for writing and installing it are at the end of this page.</p>
+      <!-- A security alert, while there is one: what every image needs at its first boot. -->
+      <div class="call stop" role="alert">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M6.46 1.14a1.75 1.75 0 0 1 3.08 0l5.25 9.5A1.75 1.75 0 0 1 13.25 13.3H2.75A1.75 1.75 0 0 1 1.21 10.64ZM8 5a.75.75 0 0 0-.75.75v2.5a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8 5m0 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+        </svg>
+        <span data-i18n="call.php"><strong>Update OPNsense right after installing - a test appliance too.</strong>
+        Every image starts from OPNsense 26.7's own image and carries its PHP, older than the fix for
+        PHP2Shell (CVE-2026-109618, CVE-2026-109619): two flaws that can let code run without a login, and
+        OPNsense's web interface runs on PHP. At the first boot: System - Firmware - Status, <em>Check for
+        updates</em>, then <em>Update</em>; afterwards <code>php -v</code> reads 8.5.12 or later, while the
+        version still reads 26.7.7. <a href="https://npuforge.org/news/update-opnsense-php2shell/">What to
+        do, step by step</a>.</span>
+      </div>
       <p class="ready-meta" id="ready_meta" hidden></p>
       <ul class="ready-list" id="ready_list" aria-live="polite"></ul>
       <p class="note" id="ready_note">Reading the published images...</p>
@@ -1052,6 +1065,9 @@
         <code>https://192.168.100.1</code> from the management port, and log in as
         <code>root</code> / <code>opnsense</code> - then change that password. The management port
         you installed through answers on 192.168.100.1 from this boot on, not on 192.168.1.1.</li>
+        <li data-i18n="install.php"><strong>Update OPNsense before anything else:</strong> System - Firmware -
+        Status, <em>Check for updates</em>, then <em>Update</em> - the image's PHP is older than the fix for
+        PHP2Shell - and check that <code>php -v</code> reads 8.5.12 or later.</li>
         <li data-i18n="install.9"><strong>Updates:</strong> the driver from <del>System - Firmware - XGS Coprocessor</del>
         <del>XGS Coprocessor - Updates</del> XGS - Updates, which offers its releases; the
         translation, the layout and the plugins follow their own releases by themselves, once a
