@@ -405,7 +405,9 @@ cat > "${HOOKDIR}/00-xgs-image-firstboot" <<'HOOK'
 #                       xgs-auto, light or dark as the browser's own setting says - which the owner
 #                       changes in System: Settings: General like any theme.
 #   6. the plugins      os-netreport, os-linkhealth, os-fanctl, and os-frontpanel when the image was
-#                       built with a front panel (the build page's "Front panel").
+#                       built with a front panel (the build page's "Front panel"); then os-watchdog,
+#                       os-kernelfollow, os-blocklists, os-portguard and os-fallbackcrypto (since
+#                       2026-10-25). Each puts its page in the XGS section, os-xgs-npu being here.
 #   7. turning them on  install/enable.sh, where a plugin has one. os-netreport and os-linkhealth
 #                       are on as installed. os-fanctl comes on in its watch-only mode, which never
 #                       writes to a fan chip. os-frontpanel comes on only where the plugin's own
@@ -477,7 +479,8 @@ if [ -f "${COMP}/os-theme-xgs/install/install.sh" ]; then
 fi
 
 # 6. The plugins; os-frontpanel is here only when the image was built with a front panel.
-for c in os-netreport os-linkhealth os-fanctl os-frontpanel; do
+for c in os-netreport os-linkhealth os-fanctl os-frontpanel \
+    os-watchdog os-kernelfollow os-blocklists os-portguard os-fallbackcrypto; do
     [ -f "${COMP}/${c}/install/install.sh" ] && step "${c}" /bin/sh "${COMP}/${c}/install/install.sh"
 done
 

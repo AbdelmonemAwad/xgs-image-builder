@@ -11,3 +11,8 @@ os-netreport      https://github.com/AbdelmonemAwad/os-netreport         main
 os-linkhealth     https://github.com/AbdelmonemAwad/os-linkhealth        main
 os-fanctl         https://github.com/AbdelmonemAwad/os-fanctl            main
 os-frontpanel     https://github.com/AbdelmonemAwad/os-frontpanel        main
+os-watchdog       https://github.com/AbdelmonemAwad/os-watchdog           main
+os-kernelfollow   https://github.com/AbdelmonemAwad/os-kernelfollow       main
+os-blocklists     https://github.com/AbdelmonemAwad/os-blocklists         main
+os-portguard      https://github.com/AbdelmonemAwad/os-portguard          main
+os-fallbackcrypto https://github.com/AbdelmonemAwad/os-fallbackcrypto     main

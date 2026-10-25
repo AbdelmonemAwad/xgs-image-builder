@@ -35,7 +35,8 @@ need opnsense-arabic/install.sh
 need opnsense-rtl/install.sh
 need os-theme-xgs/install/install.sh
 need os-theme-xgs/install/enable.sh
-for c in os-netreport os-linkhealth os-fanctl os-frontpanel; do
+for c in os-netreport os-linkhealth os-fanctl os-frontpanel \
+    os-watchdog os-kernelfollow os-blocklists os-portguard os-fallbackcrypto; do
     need "${c}/install/install.sh"
 done
 need os-fanctl/install/enable.sh
