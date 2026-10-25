@@ -253,6 +253,11 @@ names, and each recorded by commit in the build's summary:
 | [os-linkhealth](https://github.com/AbdelmonemAwad/os-linkhealth) | port and cable health | on as installed |
 | [os-fanctl](https://github.com/AbdelmonemAwad/os-fanctl) | fans and temperatures | on, in its watch-only mode: it never writes to a fan chip until a curve is chosen |
 | [os-frontpanel](https://github.com/AbdelmonemAwad/os-frontpanel) | the LCD and keys | in the image **only when the build page's "Front panel" is yes** - a rack model such as the XGS 3300; a desktop such as the XGS 136 has none - and on where the plugin's own table has a confirmed entry for the model |
+| [os-watchdog](https://github.com/AbdelmonemAwad/os-watchdog) | the host's hardware watchdog, and why it last reset | on; with os-xgs-npu arming the timer it stands aside and only shows it |
+| [os-kernelfollow](https://github.com/AbdelmonemAwad/os-kernelfollow) | kernel modules rebuilt for the kernel the next boot takes | on; os-xgs-npu's own modules are left to os-xgs-npu's follower, and nothing else is registered |
+| [os-blocklists](https://github.com/AbdelmonemAwad/os-blocklists) | address, DNS, country and JA4 block lists | on, with no list chosen: it blocks nothing until lists are chosen in its Settings |
+| [os-portguard](https://github.com/AbdelmonemAwad/os-portguard) | devices blocked by their MAC address | on, with no device listed: it blocks nothing until one is |
+| [os-fallbackcrypto](https://github.com/AbdelmonemAwad/os-fallbackcrypto) | which crypto driver encrypts IPsec on the host | as OPNsense ships (AES-NI) until another choice is applied |
 
 The front panel needs LCDproc, so when the front panel is asked for its packages are fetched at
 build time from the OPNsense
