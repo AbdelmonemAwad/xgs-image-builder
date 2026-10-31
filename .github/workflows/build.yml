@@ -150,7 +150,7 @@ jobs:
           echo "installing os-xgs-npu ${stamp}"
 
       # The rest of what goes into the image - the Arabic translation, the right-to-left layout, the
-      # XGS Silicon theme and the four plugins - each from its own repository at the ref components.list gives, each
+      # XGS Silicon theme and the plugins - each from its own repository at the ref components.list gives, each
       # recorded by commit in components/STAMPS. What they are is that list; the order they are
       # installed in is the first-boot hook in scripts/inject.sh, because that order matters.
       - name: Fetch the components
