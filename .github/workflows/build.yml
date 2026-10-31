@@ -298,5 +298,5 @@ jobs:
         with:
           name: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}
           path: '*.img.xz'
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: error

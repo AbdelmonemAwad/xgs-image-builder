@@ -74,6 +74,11 @@ jobs:
       - name: The request parser refuses what it should
         run: sh tools/test-read-request.sh
 
+      # Anyone may ask since 2026-11-01; the owner always, a stranger's driver only as a release,
+      # one build at a time and three a day.
+      - name: The limits decide what they should
+        run: python3 tools/test-request-limits.py
+
       # The defect that killed the first build that ever ran, and the step that was supposed to
       # explain it: a commit subject containing an apostrophe, pasted into shell source by GitHub
       # before any shell saw it. There is no quoting that survives a value somebody else chose,
