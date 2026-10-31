@@ -21,11 +21,12 @@ name: Build from a request
 # So the JSON block is what says this is a request, read by the same parser that validates it, and
 # an issue without one is left alone.
 #
-# WHY IT ONLY BUILDS FOR THE OWNER. CONTRIBUTING.md's licence position is that anyone else forks
-# this and builds in their own account - their build, their artifact, their storage. Without an
-# author check a stranger could open an issue here and spend the owner's Actions minutes to produce
-# an image in the owner's storage. So the build is guarded, and everyone else is answered rather
-# than ignored.
+# IT BUILDS FOR ANYONE, since 2026-11-01. Until then only the owner's requests were built and
+# everyone else was sent to fork this; OPNsense's answer on publishing images (CONTRIBUTING.md) left
+# no reason for that, and npuforge.org's build page files the request for the reader. Three limits
+# keep it fair to everyone and to the release builds that share the runners - the driver as a
+# release, one build at a time and three a day for each account (tools/request-limits.py); the
+# owner's requests skip them. An image built here is kept one day (build.yml).
 #
 # EVERY COMMENT ENDS WITH A MARKER. The build page reads these comments back to tell the reader
 # what happened to their request, and classifying them by their opening words would tie the page to
@@ -82,11 +83,26 @@ jobs:
             echo "Not a build request. Nothing to do." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # Anyone may ask; for anyone but the owner, three limits (tools/request-limits.py).
+      - name: Check the limits
+        id: limits
+        if: >-
+          steps.req.outputs.request == 'true' &&
+          steps.req.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+          OWNER: ${{ github.repository_owner }}
+          ISSUE: ${{ github.event.issue.number }}
+          REF: ${{ steps.req.outputs.project_ref }}
+          REPO: ${{ github.repository }}
+        run: python3 tools/request-limits.py >> "$GITHUB_OUTPUT"
+
       - name: Start the build
         if: >-
           steps.req.outputs.request == 'true' &&
           steps.req.outputs.ok == 'true' &&
-          github.event.issue.user.login == github.repository_owner
+          steps.limits.outputs.verdict == 'ok'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REF: ${{ github.event.repository.default_branch }}
@@ -113,7 +129,7 @@ jobs:
         if: >-
           steps.req.outputs.request == 'true' &&
           steps.req.outputs.ok == 'true' &&
-          github.event.issue.user.login == github.repository_owner
+          steps.limits.outputs.verdict == 'ok'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.issue.number }}
@@ -127,7 +143,7 @@ jobs:
           body=$(printf '%s\n' \
             "Build started: OPNsense \`${OPN_VERSION}\` \`${IMAGE_TYPE}\` at \`${CONSOLE_SPEED}\` baud, os-xgs-npu \`${PROJECT_REF}\`." \
             "" \
-            "It is the newest run under [Build image](${RUNS}). The build page you filed this from is already watching for it and will hand you the download; the image is an artifact on that run and expires on its own." \
+            "It is the newest run under [Build image](${RUNS}). The build page you filed this from is already following it and will hand you the download; the image is an artifact on that run, kept for one day." \
             "" \
             "It has not been booted on an appliance. Burn it and boot it before relying on it." \
             "" \
@@ -139,8 +155,7 @@ jobs:
       - name: It is malformed
         if: >-
           steps.req.outputs.request == 'true' &&
-          steps.req.outputs.ok != 'true' &&
-          github.event.issue.user.login == github.repository_owner
+          steps.req.outputs.ok != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.issue.number }}
@@ -161,28 +176,32 @@ jobs:
           # nothing will ever run for it, so it is not left open (build-done.yml closes the started ones)
           gh issue close "$ISSUE" --reason "not planned"
 
-      # A request from anyone else: answered rather than ignored, and nothing is built. This is the
-      # step the label gate used to skip, which is how a correct request from another account got
-      # no reply of any kind.
-      - name: It belongs in your own fork
+      # A valid request over one of the limits: answered with which, and closed - the page that filed
+      # it reads this comment and says so.
+      - name: It is over a limit
         if: >-
           steps.req.outputs.request == 'true' &&
-          github.event.issue.user.login != github.repository_owner
+          steps.req.outputs.ok == 'true' &&
+          steps.limits.outputs.verdict != 'ok'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE: ${{ github.event.issue.number }}
+          VERDICT: ${{ steps.limits.outputs.verdict }}
+          DETAIL: ${{ steps.limits.outputs.detail }}
+          RELEASES: https://github.com/AbdelmonemAwad/os-xgs-npu/releases
         run: |
           set -eu
+          case "$VERDICT" in
+            ref) why="The driver can be \`latest\` or one of [os-xgs-npu's releases](${RELEASES}); \`${DETAIL}\` is neither." ;;
+            busy) why="A build of yours is still running, #${DETAIL}: one at a time for each account. File this again once it has finished." ;;
+            limited) why="Three builds a day for each account, and this one has had ${DETAIL} in the last 24 hours. File this again tomorrow." ;;
+            *) why="It could not be checked just now. File it again in a few minutes." ;;
+          esac
           body=$(printf '%s\n' \
-            "Nothing was built. That is this repository refusing, not a fault - and the page you filed this from reads this comment, so it has already told you." \
+            "Not started. ${why}" \
             "" \
-            "Builds here only run for the account that owns this repository, so that a request cannot spend somebody else's Actions minutes. Two ways to get your own, and the first is one press:" \
+            "The build page you filed this from reads this comment, so it already knows nothing is building." \
             "" \
-            "- On the build page, open **Fork and build in my account** and give it a GitHub token. It forks this repository for you, turns workflows on for the fork, builds there and hands you the image. Nothing else to do." \
-            "- Or by hand: fork this repository; open the fork's **Actions** tab and enable workflows, which GitHub disables on every new fork; set **Settings -> Pages -> branch \`main\`, folder \`/docs\`**; then use your fork's copy of the build page." \
-            "" \
-            "Either way it is your build, your artifact, your storage - the licence position in CONTRIBUTING.md." \
-            "" \
-            "<!-- xgs-result: declined -->")
+            "<!-- xgs-result: ${VERDICT} -->")
           gh issue comment "$ISSUE" --body "$body"
           gh issue close "$ISSUE" --reason "not planned"
