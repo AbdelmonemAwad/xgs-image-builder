@@ -300,3 +300,65 @@ jobs:
           path: '*.img.xz'
           retention-days: 1
           if-no-files-found: error
+
+  # A build a request started answers that request when it ends - built or failed, with this run's
+  # link - and closes it (#70). It is a job of this run, not a workflow of its own: build-from-issue.yml
+  # starts every requested build with the repository's own token, and a run that token started starts
+  # no other workflow when it ends, so build-done.yml, which waited for that end, never ran once. And
+  # tools/request-limits.py reads an open request as one still building, so a request left open
+  # refused the same account's next one.
+  #
+  # The build page reads only a request's FIRST comment and follows the run itself, so this second
+  # comment and the close change nothing for a reader still watching. It ends with a marker too,
+  # `built` or `failed`, for anything that reads them later. A run without a build_id - one started
+  # by hand, or release-images.yml's - has no request to answer.
+  #
+  # NOTHING BELOW PASTES A VALUE INTO A SCRIPT: every value arrives through `env:`
+  # (tools/check-no-interpolation.py).
+  answer:
+    name: Answer the request
+    needs: build
+    if: always() && inputs.build_id != ''
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Answer the request this run was started for
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ID: ${{ inputs.build_id }}
+          RESULT: ${{ needs.build.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -eu
+          if ! printf '%s' "$ID" | grep -Eq '^web-[a-z0-9-]+$'; then
+            echo "Not started by a request. Nothing to answer." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # The open requests' bodies, matched here rather than through GitHub's search, whose index
+          # can lag behind a request filed a minute ago; the id reaches jq as a value, not as code.
+          n=$(gh issue list -R "$REPO" --state open --limit 100 --json number,body |
+              jq -r --arg id "$ID" '[.[] | select(.body | contains($id))][0].number // empty')
+          if [ -z "$n" ]; then
+            echo "No open request carries ${ID}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$RESULT" = success ]; then
+            body=$(printf '%s\n' \
+              "Built. The image is the artifact on [this run](${RUN_URL}), and expires on its own, a day after it was made." \
+              "" \
+              "It has not been booted on an appliance. Burn it and boot it before relying on it." \
+              "" \
+              "<!-- xgs-result: built -->")
+            reason=completed
+          else
+            body=$(printf '%s\n' \
+              "The build did not finish: it ended \`${RESULT}\`. [The run](${RUN_URL}) says where; file the request again from the build page once that is put right." \
+              "" \
+              "<!-- xgs-result: failed -->")
+            reason="not planned"
+          fi
+          gh issue comment "$n" -R "$REPO" --body "$body"
+          gh issue close "$n" -R "$REPO" --reason "$reason"
+          echo "Request #${n} answered (${RESULT}) and closed." >> "$GITHUB_STEP_SUMMARY"

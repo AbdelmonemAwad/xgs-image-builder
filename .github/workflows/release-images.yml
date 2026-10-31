@@ -110,11 +110,14 @@ jobs:
       matrix:
         console_speed: [ '38400', '115200' ]
         front_panel: [ 'yes', 'no' ]
-    # What build.yml's job asks for its attestation: a called workflow gets no more than this grants.
+    # What build.yml's jobs ask for: a called workflow gets no more than this grants, and asking
+    # for more fails the whole run before it starts. The attestation's two, and issues for the job
+    # that answers a request - which these builds, with no build_id, skip.
     permissions:
       contents: read
       id-token: write
       attestations: write
+      issues: write
     uses: ./.github/workflows/build.yml
     with:
       opnsense_version: '26.7'

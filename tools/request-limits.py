@@ -11,7 +11,7 @@ builds, which share the account's runners:
   * the driver is `latest` or one of os-xgs-npu's published releases - a branch or a commit is the
     owner's to build, not a stranger's;
   * one build at a time for each account - an earlier request still open is still building, since
-    build-done.yml closes each one when its run ends;
+    build.yml's answer job closes each one when its run ends;
   * three builds a day for each account - requests of the last 24 hours that were started.
 
 The owner's requests skip all three. read-request.py has already held every value to its pattern;
