@@ -70,11 +70,11 @@ boots perfectly into a console you cannot read.
   checks, not a second build.
 
 Writing the stick, installing to the disk and the first boot are on
-[the build page](https://build.npuforge.org/#install_steps), step by step. This release was built by
+[the step-by-step guide](https://npuforge.org/docs/guide/step-by-step/). This release was built by
 [this run](@RUN_URL@), whose log shows every step and the commit of everything that went in.
 
 An image for another console speed or another OPNsense release is built from
-[the same page](https://build.npuforge.org/), in your own account.
+[the build page](https://npuforge.org/build/), built here on request.
 
 ## Notices
 

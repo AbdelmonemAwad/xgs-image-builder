@@ -58,17 +58,11 @@ jobs:
           sys.exit(bad)
           PY
 
-      # The page and the workflow each carry the list of choices, because GitHub renders a
-      # workflow's inputs and a static page cannot read them. Two lists that must agree need
-      # something comparing them.
       # Each build takes every component at its ref fresh, so the components feed this repository
       # their changes by themselves. What can break that is a component moving an entry point the
       # first-boot hook calls; this fetches them as a build does and looks for each one.
       - name: The components carry what the image calls
         run: sh tools/check-components.sh components.list
-
-      - name: The page offers what the build accepts
-        run: python3 tools/check-options.py .
 
       # Including the cases that found an output-injection bug in the refusal path.
       - name: The request parser refuses what it should
@@ -85,14 +79,3 @@ jobs:
       # because the quoting is part of the same text. This allows no exceptions.
       - name: No workflow pastes a value into a script
         run: python3 tools/check-no-interpolation.py .
-
-      # The one step with a dependency, and the one that needs a browser. It exists because the
-      # page stopped being a form: it holds a token, calls api.github.com, turns status codes into
-      # sentences and polls for a run it has to recognise as its own. None of that shows in a diff.
-      # GitHub's API is mocked, so this spends no token and no Actions minutes - and so it proves
-      # the page's logic and nothing about GitHub's real behaviour.
-      - name: The build page does what it says
-        run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
-          node tools/test-build-page.mjs

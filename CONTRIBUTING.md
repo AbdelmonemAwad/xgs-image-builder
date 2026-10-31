@@ -31,8 +31,9 @@ the OPNsense image from OPNsense's own mirror under OPNsense's own terms.~~
 2026-10-23 the OPNsense project answered the question directly: its licence and trademark terms
 ([its legal guidelines](https://opnsense.org/legal-guidelines/)) hold nothing back from publishing
 images built on its own. So `release-images.yml` builds the most needed combinations for each
-os-xgs-npu release and publishes them, and a fork still builds any other combination in its own
-account. What that answer keeps in force, every release and every page that offers a download keeps:
+os-xgs-npu release and publishes them, and ~~a fork still builds any other combination in its own
+account~~ any other combination is built here on request, since 2026-11-01, from the build page on
+npuforge.org - a fork can still build in its own account. What that answer keeps in force, every release and every page that offers a download keeps:
 
 - **A descriptive name only** - "based on OPNsense 26.7". A name or logo derived from OPNsense's
   needs the project's permission first, and there is none.
