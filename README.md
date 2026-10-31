@@ -41,7 +41,7 @@
   <a href="#why-only-267-in-the-release-list"><img alt="OPNsense 26.7, FreeBSD 15" src="https://img.shields.io/badge/OPNsense-26.7%20%C2%B7%20FreeBSD%2015-d94f00.svg?style=flat-square"></a>
   <a href="#what-is-in-the-image"><img alt="in the image: the driver, nine plugins, Arabic, right to left and the theme" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%209%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL%20%C2%B7%20theme-555555.svg?style=flat-square"></a>
   <a href="#status"><img alt="booted: two images, one on each family" src="https://img.shields.io/badge/booted-two%20images%2C%20one%20on%20each%20family-yellow.svg?style=flat-square"></a>
-  <a href="#why-it-works-this-way"><img alt="the artifact is kept seven days, then it is gone" src="https://img.shields.io/badge/artifact-kept%207%20days%2C%20then%20gone-555555.svg?style=flat-square"></a>
+  <a href="#why-it-works-this-way"><img alt="a built image is kept one day, then it is gone" src="https://img.shields.io/badge/built%20image-kept%20one%20day%2C%20then%20gone-555555.svg?style=flat-square"></a>
   <a href="LICENSE"><img alt="licence: BSD-2-Clause" src="https://img.shields.io/badge/licence-BSD--2--Clause-blue.svg?style=flat-square"></a>
 </p>
 
@@ -50,7 +50,7 @@ Build a bootable OPNsense image for a Sophos XGS appliance, with the
 the Arabic translation, the right-to-left layout, the XGS Silicon theme and ~~four~~ nine appliance
 plugins beside it - eight when it is built without the front panel.
 
-<p align="center"><a href="https://github.com/AbdelmonemAwad/xgs-image-builder/releases/latest"><b>Download a ready-made image</b></a> - or <a href="https://build.npuforge.org/"><b>open the build page</b></a> to pick the OPNsense release, the image type and the console speed, and build your own. Nothing to install.</p>
+<p align="center"><a href="https://github.com/AbdelmonemAwad/xgs-image-builder/releases/latest"><b>Download a ready-made image</b></a> - or <a href="https://npuforge.org/build/"><b>open the build page</b></a> to pick the OPNsense release, the console speed, the driver and the front panel, and have yours built. Nothing to install.</p>
 
 ## Ready-made images
 
@@ -71,16 +71,17 @@ and the XGS 3300 are the two run by the project; the others are untested.
 
 All four are OPNsense 26.7 with the console on the serial port alone - an XGS has no video output -
 at 38400 baud, the speed the Sophos firmware uses on the same port, or at 115200, OPNsense's own. It
-is the same build a fork runs, called with those values, so everything below about what is in an
-image holds for them too. Any other combination is built from the page, in your own account. A
+is the same build a request from the page runs, called with those values, so everything below about
+what is in an image holds for them too. Any other combination is built from the page, ~~in your own
+account~~ here, for anyone who asks, since 2026-11-01. A
 release here says plainly whether its own files have been booted on an appliance.
 
 ### Checking an image
 
 - **The download** against the release's `SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing`,
   or on Windows `Get-FileHash .\<file>.img.xz -Algorithm SHA256`.
-- **Where it was built.** Every image built here since 2026-10-24 - the ready-made ones and a fork's
-  own - has a build attestation, signed through GitHub and kept by it, naming the repository, the
+- **Where it was built.** Every image built here since 2026-10-24 - the ready-made ones, the ones built on
+  request, and a fork's own - has a build attestation, signed through GitHub and kept by it, naming the repository, the
   workflow and the commit it ran from:
 
   ```
@@ -115,8 +116,9 @@ An image built here installs that project's newest release, so it carries what t
 
 ## At a glance
 
-- **Nothing to install.** One static page - every style and line of script in one file - that fills
-  in a build request, follows it, and hands over the image.
+- **Nothing to install.** ~~One static page - every style and line of script in one file -~~ The build
+  page, [on npuforge.org](https://npuforge.org/build/) since 2026-11-01, that fills in a build request, follows it,
+  and hands over the image.
 - **The official image underneath.** Fetched from OPNsense's own mirror at build time and verified;
   this repository holds no part of it.
 - **The driver's newest release.** `latest` by default: the version every appliance's Updates page
@@ -126,15 +128,11 @@ An image built here installs that project's newest release, so it carries what t
   the front panel's where there is a panel - each keeping itself across OPNsense updates.
 - **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
   queued, building step by step, image ready - and its clock stops the moment the image exists.
-- **Nothing kept** of what you build. Your image is an artifact of your own run, and it expires in
-  seven days. The ready-made ones above are the only images kept here.
+- **Nothing kept** of what you build. Your image is an artifact of ~~your own~~ its run, and it expires
+  in ~~seven days~~ one day. The ready-made ones above are the only images kept here.
 
-That link is this repository's own page, and a build only runs for the account that owns the
-repository it runs in. So it is the one to read; it is not the one to build from. For an image of
-your own, fork this repository and use **your fork's** copy of the page, at
-`https://<your-account>.github.io/<your-fork>/`. The page works out which repository to file
-against from its own URL, so your fork's page files on your fork and builds in your account. Each
-page is live once Pages is turned on for that repository - step 2 below.
+Since 2026-11-01 a build runs here for anyone who files a request from
+[the build page](https://npuforge.org/build/) - build.npuforge.org leads there - with three limits: the driver as `latest` or one of its releases, one build at a time, and three builds a day for every account but the owner's (`tools/request-limits.py`).
 
 > [!WARNING]
 > ~~**Nothing built here has been booted on an appliance.**~~ ~~**One image built here has been
@@ -149,56 +147,21 @@ page is live once Pages is turned on for that repository - step 2 below.
 
 ## How it is meant to be used
 
-1. **Fork this repository.** You have to - running a workflow needs write access to the repository
-   it runs in.
-2. **Turn on Pages for your fork** - Settings -> Pages -> source: branch `main`, folder `/docs`.
-3. Open your fork's **build page** and choose from the dropdowns: the OPNsense release, the image
-   type, the console speed, whether the console is serial-only, and which version of the driver
-   project to install - `latest`, its newest release, unless you know why not. Press the button; it fills in a build request and you submit it. A workflow
-   picks it up and starts the build.
+1. Open **[the build page](https://npuforge.org/build/)**, then **Build your own**, and choose: the OPNsense release,
+   the console speed - 38400, the vendor firmware's, or 115200, OPNsense's own - the driver, `latest`
+   or one of its releases, and whether the image carries the front panel plugin.
+2. Press **Build on GitHub**. GitHub opens with the request filled in; sign in and press **Submit new
+   issue**. That press is the authentication, which is why no token is asked for.
+3. The page follows the request and its run, step by step, and when the image is made it hands it
+   over. Download it signed in to GitHub, then write it to a USB stick.
 
-   Your fork's page is at `https://<your-account>.github.io/<your-fork>/`, and the original's -
-   worth a look before you fork - is at <https://build.npuforge.org/>.
+Each account has three builds a day, one at a time, with the driver's newest release or a published
+one. The image expires on its own, a day after it is made. Nothing is kept.
 
-   There are two ways to start it, and the difference between them is a token.
-
-   **Build it** - no token. GitHub opens in a new tab with the request filled in; press **Submit
-   new issue** there and come back. The page then reads the request back, shows whatever the
-   repository answers - including a refusal, within seconds - and follows the build to the
-   download.
-
-   *That one press is not a detour, it is the authentication.* A page cannot file an issue for
-   you: creating one through the API needs a token, submitting GitHub's own form for you is
-   blocked cross-origin, and GitHub refuses to be put in a frame. So the press stays, and it is
-   what makes this route need no credential at all. Everything after it is automatic - the request
-   carries an id, the workflow puts it in the run's name, and the page follows the issue and then
-   the run. Those reads are made with no credential, which **a public repository allows and a
-   private one does not**, and GitHub allows sixty of them an hour per address, so the page slows
-   its polling as the wait goes on and says plainly if the allowance runs out.
-
-   **Fork and build in my account** - with a token, and it does the whole thing. It forks this
-   repository into your account if you have not already, turns workflows on for the fork, builds
-   there, and hands you the image. No issue, no new tab, no steps. That is what a token buys, and
-   it is the only thing that can buy it: forking, filing an issue and dispatching a workflow all go
-   through the REST API, which has no door that does not want a credential.
-
-   The token has to cover **creating a repository** - a fork is a new one - and **Actions: Read and
-   write**. A [classic token with `repo` and
-   `workflow`](https://github.com/settings/tokens/new?scopes=repo,workflow) is the one that
-   certainly does both. It is sent to `api.github.com` and nowhere else, never put in a URL, and
-   held in the tab unless you tick the box to keep it in that browser. **No credential lives in the
-   page itself.**
-
-   The page is static either way: it loads nothing from anywhere, and every style, icon and line of
-   script is in the one file.
-
-   If you would rather skip the page, the same dropdowns are the workflow's own inputs:
-   **[Build image -> Run workflow](../../actions/workflows/build.yml)**. That is where GitHub
-   renders them, and the only place it can - a README cannot hold them, because GitHub strips
-   `<form>`, `<select>` and `<input>` out of Markdown.
-4. When it finishes, download the artifact and write it to a USB stick.
-
-The artifact expires on its own. Nothing is kept.
+With write access - in a fork, say - the same choices are the workflow's own inputs:
+**[Build image -> Run workflow](../../actions/workflows/build.yml)**. That is where GitHub renders
+them, and the only place it can - a README cannot hold them, because GitHub strips `<form>`,
+`<select>` and `<input>` out of Markdown.
 
 ## Why it works this way
 
