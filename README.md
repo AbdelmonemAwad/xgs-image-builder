@@ -15,9 +15,11 @@
 > Every image here, built or downloaded, starts from OPNsense 26.7's own image and carries the PHP that
 > image has, older than the fix for CVE-2026-109618 and CVE-2026-109619 - two flaws
 > [php.net](https://www.php.net/archive/2026.php) says can allow remote code execution without a login;
-> OPNsense's web interface runs on PHP. OPNsense delivers the fix, **PHP 8.5.12**, to 26.7.7 as an
+> OPNsense's web interface runs on PHP. ~~OPNsense delivers the fix, **PHP 8.5.12**, to 26.7.7 as an
 > out-of-band package update ([its announcement](https://forum.opnsense.org/index.php?topic=53191.0)), so
-> **the version still reads 26.7.7 afterwards**.
+> **the version still reads 26.7.7 afterwards**.~~ Since OPNsense 26.7.8 the fix, **PHP 8.5.12**, comes
+> with OPNsense's own update: it takes the appliance to 26.7.8 - base, kernel and packages, with a
+> reboot - and **the version reads 26.7.8 afterwards** (26.7.8_1 with the hotfix that followed).
 >
 > - **At the first boot**, before the web interface can be reached from a network you do not trust:
 >   System: Firmware: Status - *Check for updates*, then *Update*.
@@ -37,16 +39,16 @@
   <br>
   <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases"><img alt="installs os-xgs-npu's newest release" src="https://img.shields.io/github/v/release/AbdelmonemAwad/os-xgs-npu?include_prereleases&amp;sort=semver&amp;style=flat-square&amp;label=installs%20os-xgs-npu&amp;color=8250df"></a>
   <a href="#why-only-267-in-the-release-list"><img alt="OPNsense 26.7, FreeBSD 15" src="https://img.shields.io/badge/OPNsense-26.7%20%C2%B7%20FreeBSD%2015-d94f00.svg?style=flat-square"></a>
-  <a href="#what-is-in-the-image"><img alt="in the image: the driver, four plugins, Arabic, right to left and the theme" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%204%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL%20%C2%B7%20theme-555555.svg?style=flat-square"></a>
-  <a href="#status"><img alt="booted: one image, on an XGS 3300" src="https://img.shields.io/badge/booted-one%20image%2C%20on%20an%20XGS%203300-yellow.svg?style=flat-square"></a>
+  <a href="#what-is-in-the-image"><img alt="in the image: the driver, nine plugins, Arabic, right to left and the theme" src="https://img.shields.io/badge/in%20the%20image-driver%20%C2%B7%209%20plugins%20%C2%B7%20Arabic%20%C2%B7%20RTL%20%C2%B7%20theme-555555.svg?style=flat-square"></a>
+  <a href="#status"><img alt="booted: two images, one on each family" src="https://img.shields.io/badge/booted-two%20images%2C%20one%20on%20each%20family-yellow.svg?style=flat-square"></a>
   <a href="#why-it-works-this-way"><img alt="the artifact is kept seven days, then it is gone" src="https://img.shields.io/badge/artifact-kept%207%20days%2C%20then%20gone-555555.svg?style=flat-square"></a>
   <a href="LICENSE"><img alt="licence: BSD-2-Clause" src="https://img.shields.io/badge/licence-BSD--2--Clause-blue.svg?style=flat-square"></a>
 </p>
 
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it, and
-the Arabic translation, the right-to-left layout, the XGS Silicon theme and four appliance plugins
-beside it.
+the Arabic translation, the right-to-left layout, the XGS Silicon theme and ~~four~~ nine appliance
+plugins beside it - eight when it is built without the front panel.
 
 <p align="center"><a href="https://github.com/AbdelmonemAwad/xgs-image-builder/releases/latest"><b>Download a ready-made image</b></a> - or <a href="https://build.npuforge.org/"><b>open the build page</b></a> to pick the OPNsense release, the image type and the console speed, and build your own. Nothing to install.</p>
 
@@ -120,8 +122,8 @@ An image built here installs that project's newest release, so it carries what t
 - **The driver's newest release.** `latest` by default: the version every appliance's Updates page
   offers, so an image starts where an update would take it - not on whatever was merged last.
 - **Everything at the first boot.** The driver built against the kernel the appliance runs, the
-  Arabic translation and the right-to-left layout, the XGS Silicon theme, four plugins, and the
-  front panel's where there is a panel - each keeping itself across OPNsense updates.
+  Arabic translation and the right-to-left layout, the XGS Silicon theme, ~~four~~ eight plugins, and
+  the front panel's where there is a panel - each keeping itself across OPNsense updates.
 - **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
   queued, building step by step, image ready - and its clock stops the moment the image exists.
 - **Nothing kept** of what you build. Your image is an artifact of your own run, and it expires in
@@ -279,8 +281,10 @@ reboot. So each installs a pkg trigger, which pkg runs the moment an update writ
 directories, and a boot hook - in its own repository, where the change belongs.
 
 **And each keeps itself up to date.** The driver from ~~System - Firmware - XGS Coprocessor~~
-**XGS Coprocessor - Updates**, which offers the project's releases (since 2026-10-18), the others by
-themselves once a day from their own repository's latest release. Both move only forward from what
+**XGS Coprocessor - Updates**, which offers the project's releases (since 2026-10-18), ~~the others by
+themselves once a day from their own repository's latest release~~ the others from the Plugins tab of
+XGS - Updates, and with every update of the project since 0.1.0-alpha.8.2, each from its own
+repository's latest release. Both move only forward from what
 is installed, which they read from the commit this builder writes into each tree as `.source-commit`
 (the driver's as `.image-build`, with the release's tag beside the commit when a release was
 installed): with `.git` removed from the image that is the only record of it, and without it a

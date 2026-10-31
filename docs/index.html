@@ -685,8 +685,8 @@
         Every image starts from OPNsense 26.7's own image and carries its PHP, older than the fix for
         PHP2Shell (CVE-2026-109618, CVE-2026-109619): two flaws that can let code run without a login, and
         OPNsense's web interface runs on PHP. At the first boot: System - Firmware - Status, <em>Check for
-        updates</em>, then <em>Update</em>; afterwards <code>php -v</code> reads 8.5.12 or later, while the
-        version still reads 26.7.7. <a href="https://npuforge.org/news/update-opnsense-php2shell/">What to
+        updates</em>, then <em>Update</em>; afterwards <code>php -v</code> reads 8.5.12 or later, <del>while the
+        version still reads 26.7.7</del> and since 26.7.8, which carries the fix, the version reads 26.7.8. <a href="https://npuforge.org/news/update-opnsense-php2shell/">What to
         do, step by step</a>.</span>
       </div>
       <p class="ready-meta" id="ready_meta" hidden></p>
@@ -1070,8 +1070,9 @@
         PHP2Shell - and check that <code>php -v</code> reads 8.5.12 or later.</li>
         <li data-i18n="install.9"><strong>Updates:</strong> the driver from <del>System - Firmware - XGS Coprocessor</del>
         <del>XGS Coprocessor - Updates</del> XGS - Updates, which offers its releases; the
-        translation, the layout and the plugins follow their own releases by themselves, once a
-        day.</li>
+        translation, the layout and the plugins <del>follow their own releases by themselves, once a
+        day</del> follow their own releases from the Plugins tab of XGS - Updates, and with every update
+        of the project.</li>
       </ol>
     </div>
   </section>

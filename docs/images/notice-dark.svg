@@ -11,7 +11,7 @@
   <text x="150" y="136" font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#E6EDF3">Every image here starts from OPNsense 26.7&#8217;s own image and carries its PHP - older than the fix.</text>
   <text x="150" y="166" font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#8B949E">Two PHP flaws can let code run on the firewall without a login, and its web interface runs on PHP.</text>
   <text x="150" y="196" font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#E6EDF3">First boot: System &#8250; Firmware &#8250; Status &#8250; Check for updates &#8250; Update - a test appliance too.</text>
-  <text x="150" y="226" font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#8B949E">The version still reads 26.7.7 afterwards: the PHP version is what tells.</text>
+  <text x="150" y="226" font-family="ui-sans-serif,-apple-system,Segoe UI,Inter,Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#8B949E">Since 26.7.8 the update carries the fix: the version reads 26.7.8 after it.</text>
   <rect x="150" y="248" width="380" height="34" rx="8" fill="#161B22" stroke="#30363D"/>
   <text x="166" y="271" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="15" font-weight="400" fill="#E6EDF3">php -v  &#8594;  8.5.12 or later</text>
 </svg>

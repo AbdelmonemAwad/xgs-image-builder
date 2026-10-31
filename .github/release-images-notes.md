@@ -8,8 +8,8 @@ from it.
 > 26.7's own image and carries its PHP, older than the fix for PHP2Shell (CVE-2026-109618,
 > CVE-2026-109619), which [php.net](https://www.php.net/archive/2026.php) says can allow remote code
 > execution without a login; OPNsense's web interface runs on PHP. At the first boot: System: Firmware:
-> Status - *Check for updates*, then *Update*. Afterwards `php -v` reads **8.5.12** or later, while the
-> version still reads 26.7.7 ([OPNsense's announcement](https://forum.opnsense.org/index.php?topic=53191.0),
+> Status - *Check for updates*, then *Update*. Afterwards `php -v` reads **8.5.12** or later, and the
+> version 26.7.8 or later, which carries the fix ([the earlier out-of-band fix](https://forum.opnsense.org/index.php?topic=53191.0),
 > [what to do](https://npuforge.org/news/update-opnsense-php2shell/)).
 
 | Image | For |
