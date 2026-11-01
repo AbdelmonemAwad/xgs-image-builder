@@ -131,8 +131,11 @@ An image built here installs that project's newest release, so it carries what t
 - **Nothing kept** of what you build. Your image is an artifact of ~~your own~~ its run, and it expires
   in ~~seven days~~ one day. The ready-made ones above are the only images kept here.
 
-Since 2026-11-01 a build runs here for anyone who files a request from
-[the build page](https://npuforge.org/build/) - build.npuforge.org leads there - with three limits: the driver as `latest` or one of its releases, one build at a time, and three builds a day for every account but the owner's (`tools/request-limits.py`).
+Since 2026-11-01 a build runs here for anyone. [The build page](https://npuforge.org/build/) -
+build.npuforge.org leads there - starts it itself, through its site's Worker: no GitHub account,
+three builds a day for each visitor, the driver as `latest` or one of its releases. A request filed
+as an issue here is built too, with three limits: the same drivers, one build at a time, and three
+builds a day for every account but the owner's (`tools/request-limits.py`).
 
 > [!WARNING]
 > ~~**Nothing built here has been booted on an appliance.**~~ ~~**One image built here has been
@@ -150,13 +153,17 @@ Since 2026-11-01 a build runs here for anyone who files a request from
 1. Open **[the build page](https://npuforge.org/build/)**, then **Build your own**, and choose: the OPNsense release,
    the console speed - 38400, the vendor firmware's, or 115200, OPNsense's own - the driver, `latest`
    or one of its releases, and whether the image carries the front panel plugin.
-2. Press **Build on GitHub**. GitHub opens with the request filled in; sign in and press **Submit new
-   issue**. That press is the authentication, which is why no token is asked for.
-3. The page follows the request and its run, step by step, and when the image is made it hands it
-   over. Download it signed in to GitHub, then write it to a USB stick.
+2. Pass Cloudflare's check and press **Build the image**. The site starts the build here with its
+   own token - no GitHub account, and the page stays where it is. Three builds a day for each
+   visitor; a build that is running can be cancelled from the page.
+3. The page follows the run, step by step, and when the image is made it hands it over from the
+   site, with no GitHub sign-in. Write it to a USB stick.
 
-Each account has three builds a day, one at a time, with the driver's newest release or a published
-one. The image expires on its own, a day after it is made. Nothing is kept.
+The image expires on its own, a day after it is made. Nothing is kept.
+
+A request filed as an issue here, the way the page asked until 2026-11-01, is still read and built
+by `build-from-issue.yml`, three a day for each account and one at a time, and answered when its
+build ends.
 
 With write access - in a fork, say - the same choices are the workflow's own inputs:
 **[Build image -> Run workflow](../../actions/workflows/build.yml)**. That is where GitHub renders
