@@ -15,9 +15,7 @@
 > Every image here, built or downloaded, starts from OPNsense 26.7's own image and carries the PHP that
 > image has, older than the fix for CVE-2026-109618 and CVE-2026-109619 - two flaws
 > [php.net](https://www.php.net/archive/2026.php) says can allow remote code execution without a login;
-> OPNsense's web interface runs on PHP. ~~OPNsense delivers the fix, **PHP 8.5.12**, to 26.7.7 as an
-> out-of-band package update ([its announcement](https://forum.opnsense.org/index.php?topic=53191.0)), so
-> **the version still reads 26.7.7 afterwards**.~~ Since OPNsense 26.7.8 the fix, **PHP 8.5.12**, comes
+> OPNsense's web interface runs on PHP. Since OPNsense 26.7.8 the fix, **PHP 8.5.12**, comes
 > with OPNsense's own update: it takes the appliance to 26.7.8 - base, kernel and packages, with a
 > reboot - and **the version reads 26.7.8 afterwards** (26.7.8_1 with the hotfix that followed).
 >
@@ -34,7 +32,7 @@
 > An image built here installs the newest one.
 
 <p align="center">
-  <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml"><img alt="checks: the page, the request parser, the workflows" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml/badge.svg"></a>
+  <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml"><img alt="checks: the request parser, the limits, the workflows" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/checks.yml/badge.svg"></a>
   <a href="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml"><img alt="the last image built" src="https://github.com/AbdelmonemAwad/xgs-image-builder/actions/workflows/build.yml/badge.svg"></a>
   <br>
   <a href="https://github.com/AbdelmonemAwad/os-xgs-npu/releases"><img alt="installs os-xgs-npu's newest release" src="https://img.shields.io/github/v/release/AbdelmonemAwad/os-xgs-npu?include_prereleases&amp;sort=semver&amp;style=flat-square&amp;label=installs%20os-xgs-npu&amp;color=8250df"></a>
@@ -47,14 +45,14 @@
 
 Build a bootable OPNsense image for a Sophos XGS appliance, with the
 [os-xgs-npu](https://github.com/AbdelmonemAwad/os-xgs-npu) driver and plugin already in it, and
-the Arabic translation, the right-to-left layout, the XGS Silicon theme and ~~four~~ nine appliance
+the Arabic translation, the right-to-left layout, the XGS Silicon theme and nine appliance
 plugins beside it - eight when it is built without the front panel.
 
 <p align="center"><a href="https://github.com/AbdelmonemAwad/xgs-image-builder/releases/latest"><b>Download a ready-made image</b></a> - or <a href="https://npuforge.org/build/"><b>open the build page</b></a> to pick the OPNsense release, the console speed, the driver and the front panel, and have yours built. Nothing to install.</p>
 
 ## Ready-made images
 
-~~For each os-xgs-npu release~~ For each main os-xgs-npu release - started by its release as it is published, and found by a look every six hours besides; a small release, whose number has a fourth part, has no images of its own (2026-10-24) - [`release-images.yml`](.github/workflows/release-images.yml) builds
+For each main os-xgs-npu release - started by its release as it is published, and found by a look every six hours besides; a small release, whose number has a fourth part, has no images of its own (2026-10-24) - [`release-images.yml`](.github/workflows/release-images.yml) builds
 four images and publishes them as a [release of this repository](../../releases), named
 `images-` and that release's tag, with a `SHA256SUMS` beside them:
 
@@ -72,16 +70,15 @@ and the XGS 3300 are the two run by the project; the others are untested.
 All four are OPNsense 26.7 with the console on the serial port alone - an XGS has no video output -
 at 38400 baud, the speed the Sophos firmware uses on the same port, or at 115200, OPNsense's own. It
 is the same build a request from the page runs, called with those values, so everything below about
-what is in an image holds for them too. Any other combination is built from the page, ~~in your own
-account~~ here, for anyone who asks, since 2026-11-01. A
+what is in an image holds for them too. Any other combination is built from the page, here, for anyone who asks, since 2026-11-01. A
 release here says plainly whether its own files have been booted on an appliance.
 
 ### Checking an image
 
 - **The download** against the release's `SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing`,
   or on Windows `Get-FileHash .\<file>.img.xz -Algorithm SHA256`.
-- **Where it was built.** Every image built here since 2026-10-24 - the ready-made ones, the ones built on
-  request, and a fork's own - has a build attestation, signed through GitHub and kept by it, naming the repository, the
+- **Where it was built.** Every image built here since 2026-10-24 - the ready-made ones, the ones built from
+  the page or on request, and a fork's own - has a build attestation, signed through GitHub and kept by it, naming the repository, the
   workflow and the commit it ran from:
 
   ```
@@ -116,20 +113,20 @@ An image built here installs that project's newest release, so it carries what t
 
 ## At a glance
 
-- **Nothing to install.** ~~One static page - every style and line of script in one file -~~ The build
-  page, [on npuforge.org](https://npuforge.org/build/) since 2026-11-01, that fills in a build request, follows it,
-  and hands over the image.
+- **Nothing to install.** The build page, [on npuforge.org](https://npuforge.org/build/) since
+  2026-11-01, starts a build, follows it and hands over the image - no GitHub account.
 - **The official image underneath.** Fetched from OPNsense's own mirror at build time and verified;
   this repository holds no part of it.
 - **The driver's newest release.** `latest` by default: the version every appliance's Updates page
   offers, so an image starts where an update would take it - not on whatever was merged last.
 - **Everything at the first boot.** The driver built against the kernel the appliance runs, the
-  Arabic translation and the right-to-left layout, the XGS Silicon theme, ~~four~~ eight plugins, and
+  Arabic translation and the right-to-left layout, the XGS Silicon theme, eight plugins, and
   the front panel's where there is a panel - each keeping itself across OPNsense updates.
-- **Followed to the end.** A bar at the top of the page follows the build - requested, accepted,
-  queued, building step by step, image ready - and its clock stops the moment the image exists.
-- **Nothing kept** of what you build. Your image is an artifact of ~~your own~~ its run, and it expires
-  in ~~seven days~~ one day. The ready-made ones above are the only images kept here.
+- **Followed to the end.** A bar on the page follows the build - started, queued, building step by
+  step, image ready - and its clock stops when the build does; a build that is running can be
+  cancelled from the page.
+- **Nothing kept** of what you build. Your image is an artifact of its run, and it expires
+  in one day. The ready-made ones above are the only images kept here.
 
 Since 2026-11-01 a build runs here for anyone. [The build page](https://npuforge.org/build/) -
 build.npuforge.org leads there - starts it itself, through its site's Worker: no GitHub account,
@@ -138,8 +135,7 @@ as an issue here is built too, with three limits: the same drivers, one build at
 builds a day for every account but the owner's (`tools/request-limits.py`).
 
 > [!WARNING]
-> ~~**Nothing built here has been booted on an appliance.**~~ ~~**One image built here has been
-> installed on an appliance**~~ **Two images built here have been installed, one on each family**:
+> **Two images built here have been installed, one on each family**:
 > OPNsense 26.7, serial, 38400 baud, on an XGS 3300 (2026-10-16), which then assigned its own front
 > ports at its first boot from disk; and OPNsense 26.7, serial, 115200 baud, on an XGS 136
 > (2026-10-21), its front ports up at the first boot, then updated to 26.7.7 from the GUI - the
@@ -175,9 +171,6 @@ them, and the only place it can - a README cannot hold them, because GitHub stri
 This repository holds **no part of any OPNsense image**. The workflow fetches the official image
 from OPNsense's own mirror at build time, verifies it, and adds this project's files to it.
 
-~~That is not only to keep the repository small. Because the build runs in *your* fork, under *your*
-account, the image is something you built for yourself from an upstream image you obtained from
-upstream. This repository distributes its own code and nothing else.~~
 
 That keeps the repository small, and it keeps every image traceable to the official one it was
 made from. The ready-made images are published here too, since 2026-10-23, when the OPNsense
@@ -191,17 +184,20 @@ name is used only to say which system the image is built from.
 
 ## The console speed matters more than it looks
 
-An XGS appliance has no screen. OPNsense defaults its serial console to **115200**, and Sophos
+An XGS appliance has no screen. OPNsense defaults its serial console to **115200**, and the vendor
 firmware uses **38400** on the same port. Choose the wrong one and the appliance boots perfectly
-into a console you cannot read. The dropdown exists for that reason.
+into a console you cannot read. The choice exists for that reason: take the speed the appliance's
+console already runs at, as its BIOS sets it, so the BIOS's screens, the boot menu and OPNsense all
+read in one terminal at one setting.
 
 The speed chosen is written everywhere the port's speed is decided, not only in the loader: the
 loader (`/boot/loader.conf.local`), the boot blocks (`/boot.config`), and OPNsense's own default
 configuration (`serialspeed` in `/usr/local/etc/config.xml`). The last one matters most. At every
 boot OPNsense rewrites the login prompt's speed in `/etc/ttys` from that setting, and the serial
 image ships 115200 - so until 2026-10-16 an image built for 38400 booted readably and then printed
-its login prompt at 115200, which a 38400 terminal shows as garbage. With "serial only" off, the
-screen is set as the second console too, so it gets a login prompt of its own.
+its login prompt at 115200, which a 38400 terminal shows as garbage. With the workflow's
+`serial_console` set to no - the build page always sets it to yes - the screen is set as the
+second console too, so it gets a login prompt of its own.
 
 ## What is in the image
 
@@ -250,9 +246,8 @@ the layout and the plugins' strings live in, and an update that only installs pa
 reboot. So each installs a pkg trigger, which pkg runs the moment an update writes into those
 directories, and a boot hook - in its own repository, where the change belongs.
 
-**And each keeps itself up to date.** The driver from ~~System - Firmware - XGS Coprocessor~~
-**XGS Coprocessor - Updates**, which offers the project's releases (since 2026-10-18), ~~the others by
-themselves once a day from their own repository's latest release~~ the others from the Plugins tab of
+**And each keeps itself up to date.** The driver from
+**XGS - Updates**, which offers the project's releases (since 2026-10-18), the others from the Plugins tab of
 XGS - Updates, and with every update of the project since 0.1.0-alpha.8.2, each from its own
 repository's latest release. Both move only forward from what
 is installed, which they read from the commit this builder writes into each tree as `.source-commit`
@@ -277,7 +272,7 @@ shape the image, and it is short.
 
 Nothing here is finished. See the issues.
 
-- **Installing an image** is on the build page, step by step: write the image to a stick, boot it, install to the disk, and at
+- **Installing an image** is in the [step-by-step guide](https://npuforge.org/docs/guide/step-by-step/): write the image to a stick, boot it, install to the disk, and at
   the first boot from the disk a thirty-second countdown on the console assigns the front ports -
   WAN on Port2 (XGS 3300) or Port1 (XGS 136), every other front port in one bridge as LAN on
   192.168.1.1, and the management port, where there is one, as MGMT on 192.168.100.1. A key during
