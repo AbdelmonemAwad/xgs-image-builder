@@ -69,6 +69,10 @@ the XGS 87's eMMC driver: the loader needs it before the PCI bus is probed, so t
 it for the image's exact kernel with the project's `install/image-fchemmc.sh`, and first boot removes
 it from every machine without that controller.
 
+The first project release that carries that script needs this change merged here first: on the old
+14.2 guest the script refuses and the image build fails. A small release gets no images by itself, so
+after it is published, run `release-images.yml` with `project_tag` set to its tag.
+
 ## Copyright, and what a contribution agrees to
 
 The copyright in this repository is Abdelmonem Awad's, and the licence is in LICENSE. A licence is
