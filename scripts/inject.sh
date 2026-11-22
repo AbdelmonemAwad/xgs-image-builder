@@ -25,8 +25,14 @@
 # /usr/local/share/os-xgs-npu/kernel-sources/, and fetch-sources.sh prefers it over the network.
 # So this fetches the tarball for THIS IMAGE'S kernel and puts it there.
 #
-# NO PREBUILT MODULE. A module built against a different kernel in the same branch loads without
-# complaining and then reads structures at the wrong offsets. Sources only.
+# NO PREBUILT DRIVER. A module built against a different kernel in the same branch loads without
+# complaining and then reads structures at the wrong offsets. Sources only, with one exception:
+# fchemmc, the driver of the XGS 87's eMMC controller. The loader has to load it before the PCI bus is
+# probed, so a first boot is too late to build it, and without it the image's installer offers no eMMC
+# to install onto. It is built here for this image's exact kernel, by the project's own
+# install/image-fchemmc.sh, which is why this guest runs the image's major FreeBSD release; the module
+# probes on that kernel and no other, and at first boot install.sh takes it away again on any machine
+# without that controller.
 #
 # AND THE COMPONENTS: the Arabic translation, the right-to-left layout, the XGS Silicon theme and the
 # four plugins, each fetched from its own repository by fetch-components.sh, and the package files of
@@ -203,6 +209,21 @@ say "project installed under /usr/local/share/os-xgs-npu/source"
 mkdir -p "${SHARE}/kernel-sources"
 cp "${TARBALL}" "${SHARE}/kernel-sources/"
 say "kernel sources placed in /usr/local/share/os-xgs-npu/kernel-sources/${TARBALL}"
+
+# ------------------------------------------------------------------ the eMMC driver, for this kernel
+
+# A release of the project from before this script has nothing to build, and its image is what it
+# always was. One that has it and cannot build refuses the image: an image without the driver would
+# look finished and offer an XGS 87 no eMMC.
+if [ -f "${PROJECT}/install/image-fchemmc.sh" ]; then
+    if ! sh "${PROJECT}/install/image-fchemmc.sh" put "${MNT}"; then
+        say "could not build fchemmc for this image's kernel. Refusing to produce an image that"
+        say "cannot install onto the eMMC of an XGS 87."
+        exit 1
+    fi
+else
+    say "this release of the project has no install/image-fchemmc.sh: no eMMC driver in the image"
+fi
 
 # ------------------------------------------------------------------ the components
 

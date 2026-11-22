@@ -209,6 +209,12 @@ The driver is **not** shipped prebuilt. It is built on the appliance against tha
 sources, on first boot, because a module built against a different kernel loads silently and
 would be broken by the first update.
 
+One small module is the exception: `fchemmc`, the driver of the XGS 87's eMMC controller. The loader
+must load it before the PCI bus is probed, so a first boot is too late to build it. The image build
+makes it for the image's exact kernel, it attaches to nothing on any other hardware, and first boot
+removes it from every machine without that controller. Installing onto the eMMC replaces the vendor's
+system on it.
+
 Beside the driver, each from its own repository at the ref [components.list](components.list)
 names, and each recorded by commit in the build's summary:
 

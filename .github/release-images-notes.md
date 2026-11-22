@@ -36,8 +36,10 @@ boots perfectly into a console you cannot read.
   checksum list OPNsense publishes. Nothing in it is changed except what is added below, and
   OPNsense's copyright and licence notices are kept as they are.
 - **os-xgs-npu @VERSION@** - the driver as sources, built on the appliance at its first boot against
-  the kernel it runs. No module is built in advance: one built for a different kernel loads without
-  complaint and then reads its structures at the wrong offsets.
+  the kernel it runs. No driver is built in advance: one built for a different kernel loads without
+  complaint and then reads its structures at the wrong offsets. The one module built in advance is
+  `fchemmc`, for the eMMC of an XGS 87, for this image's exact kernel; the first boot removes it from
+  any other model. Installing onto the eMMC replaces the vendor's system on it.
 - The Arabic translation and the right-to-left layout (the GUI stays in English until Arabic is
   chosen), the XGS Silicon theme, and the appliance plugins - with, in the front-panel images, the
   front panel plugin and the LCDproc packages it needs. All installed at the first boot, each keeping

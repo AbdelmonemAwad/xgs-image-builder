@@ -64,7 +64,10 @@ own PCI id and exits cleanly when its hardware is absent. Note that a PCI id ide
 
 **No prebuilt module in the image.** A module built against a different kernel **loads silently**,
 so an image carrying one is broken by the first kernel update. Ship the sources, the boot hooks and
-`kernel-follow.sh`, and let the appliance build it on first boot.
+`kernel-follow.sh`, and let the appliance build it on first boot. The one exception is `fchemmc`,
+the XGS 87's eMMC driver: the loader needs it before the PCI bus is probed, so the image build makes
+it for the image's exact kernel with the project's `install/image-fchemmc.sh`, and first boot removes
+it from every machine without that controller.
 
 ## Copyright, and what a contribution agrees to
 
