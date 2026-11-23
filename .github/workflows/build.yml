@@ -188,7 +188,9 @@ jobs:
           # The front panel in the name: the two ready-made images of a release differ by it alone.
           OUT_NAME: xgs-image-based-on-opnsense-${{ inputs.opnsense_version }}-${{ inputs.image_type }}-${{ inputs.console_speed }}${{ inputs.front_panel == 'yes' && '-front-panel' || '' }}.img
         with:
-          release: '14.2'
+          # The image's own FreeBSD release: scripts/inject.sh builds the eMMC driver for the image's
+          # kernel with this guest's make and cc, and the project's script refuses another major.
+          release: '15.1'
           sync: sshfs
           copyback: true
           envs: 'OPN_URL OPN_FILE OPN_SHA CONSOLE_SPEED SERIAL_CONSOLE FRONT_PANEL PROJ_STAMP OUT_NAME'
@@ -270,9 +272,10 @@ jobs:
             printf '> **This image has not been booted on an appliance.** A GitHub runner has no\n'
             printf '> Sophos hardware attached to it. Burn it and boot it before relying on it.\n\n'
             printf 'It carries the driver **sources** and the kernel sources for its own kernel, and\n'
-            printf 'builds the module on the appliance at first boot. It carries no prebuilt module:\n'
+            printf 'builds the module on the appliance at first boot. It carries no prebuilt driver:\n'
             printf 'one built against a different kernel loads without complaining and then reads\n'
-            printf 'structures at the wrong offsets.\n\n'
+            printf 'structures at the wrong offsets. The one module built here is fchemmc, for the\n'
+            printf 'eMMC of an XGS 87, for this exact kernel; first boot removes it from any other model.\n\n'
             printf 'Every family is installed. The selection happens at first boot, by guards that\n'
             printf 'already exist in the project. See `docs/board-maps.md`.\n\n'
             printf 'With it: the Arabic translation and the right-to-left layout (the GUI stays in\n'
